@@ -16,12 +16,22 @@ import 'package:anestrack_mobile/modules/student/procedures/data/repositories/ho
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/hospital_procedure_type_repository.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/create_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/co_sign_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_co_sign_context_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/confirm_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_pending_for_supervisor_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_hospitals_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_procedure_types_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_supervisors_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/supervisors_bloc/supervisors_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/pending_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_context_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/confirm_action_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -57,6 +67,9 @@ class ServicesLocator {
     sl.registerLazySingleton<ProcedureTypeRepository>(
       () => ProcedureTypeRepositoryImpl(sl<HospitalProcedureTypeDataSource>()),
     );
+    sl.registerLazySingleton<SupervisorRepository>(
+      () => SupervisorRepositoryImpl(sl<HospitalProcedureTypeDataSource>()),
+    );
 
     // Use Cases
     sl.registerLazySingleton<ListProceduresUseCase>(
@@ -65,11 +78,26 @@ class ServicesLocator {
     sl.registerLazySingleton<CreateProcedureUseCase>(
       () => CreateProcedureUseCase(sl<ProcedureRepository>()),
     );
+    sl.registerLazySingleton<CoSignProcedureUseCase>(
+      () => CoSignProcedureUseCase(sl<ProcedureRepository>()),
+    );
+    sl.registerLazySingleton<GetCoSignContextUseCase>(
+      () => GetCoSignContextUseCase(sl<ProcedureRepository>()),
+    );
+    sl.registerLazySingleton<ConfirmProcedureUseCase>(
+      () => ConfirmProcedureUseCase(sl<ProcedureRepository>()),
+    );
+    sl.registerLazySingleton<ListPendingForSupervisorUseCase>(
+      () => ListPendingForSupervisorUseCase(sl<ProcedureRepository>()),
+    );
     sl.registerLazySingleton<ListHospitalsUseCase>(
       () => ListHospitalsUseCase(sl<HospitalRepository>()),
     );
     sl.registerLazySingleton<ListProcedureTypesUseCase>(
       () => ListProcedureTypesUseCase(sl<ProcedureTypeRepository>()),
+    );
+    sl.registerLazySingleton<ListSupervisorsUseCase>(
+      () => ListSupervisorsUseCase(sl<SupervisorRepository>()),
     );
 
     // Blocs
@@ -87,6 +115,23 @@ class ServicesLocator {
     );
     sl.registerFactory<ProcedureTypesBloc>(
       () => ProcedureTypesBloc(sl<ListProcedureTypesUseCase>()),
+    );
+    sl.registerFactory<SupervisorsBloc>(
+      () => SupervisorsBloc(sl<ListSupervisorsUseCase>()),
+    );
+
+    // Supervisor review / co-sign blocs
+    sl.registerFactory<PendingBloc>(
+      () => PendingBloc(sl<ListPendingForSupervisorUseCase>()),
+    );
+    sl.registerFactory<CoSignContextBloc>(
+      () => CoSignContextBloc(sl<GetCoSignContextUseCase>()),
+    );
+    sl.registerFactory<CoSignActionBloc>(
+      () => CoSignActionBloc(sl<CoSignProcedureUseCase>()),
+    );
+    sl.registerFactory<ConfirmActionBloc>(
+      () => ConfirmActionBloc(sl<ConfirmProcedureUseCase>()),
     );
   }
 }

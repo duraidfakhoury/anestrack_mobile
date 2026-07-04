@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
-// TODO: Ensure you create/import your SupervisorsBloc variations here
-// import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/supervisors_bloc/supervisors_bloc.dart'; 
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/supervisors_bloc/supervisors_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/co_sign_handoff_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
@@ -12,6 +17,9 @@ import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/c
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_state.dart';
 import 'package:intl/intl.dart';
+
+const _teal = Color(0xFF0D9488);
+const _cyan = Color(0xFF0891B2);
 
 class CreateProcedureScreen extends StatefulWidget {
   const CreateProcedureScreen({super.key});
@@ -22,14 +30,12 @@ class CreateProcedureScreen extends StatefulWidget {
 
 class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
   late CreateProcedureBloc _createProcedureBloc;
-  late HospitalsBloc _fetchhospital;
-  late ProcedureTypesBloc _fetchProcedurestypes;
-  // Dynamic block ready for Supervisors list integration
-  // late SupervisorsBloc _fetchSupervisors; 
+  late HospitalsBloc _hospitalsBloc;
+  late ProcedureTypesBloc _procedureTypesBloc;
+  late SupervisorsBloc _supervisorsBloc;
 
   final _formKey = GlobalKey<FormState>();
 
-  // Parameters track IDs from dynamic dropdown selections
   String? _selectedHospitalId;
   String? _selectedProcedureTypeId;
   String? _selectedSupervisorId;
@@ -39,17 +45,22 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
   final TextEditingController _dateController = TextEditingController();
 
   bool _isOnline = true;
+  bool _requestLiveCoSign = false;
+  bool _isEmergency = false;
   DateTime? _chosenDate;
+
+  String? _photoBase64; // no data-URI prefix
+  String? _photoPath; // for preview
 
   @override
   void initState() {
     super.initState();
     _createProcedureBloc = sl<CreateProcedureBloc>();
-    _fetchhospital = sl<HospitalsBloc>()..add(FetchHospitalsEvent());
-    _fetchProcedurestypes = sl<ProcedureTypesBloc>()..add(FetchProcedureTypesEvent());
-    // _fetchSupervisors = sl<SupervisorsBloc>()..add(FetchSupervisorsEvent());
+    _hospitalsBloc = sl<HospitalsBloc>()..add(FetchHospitalsEvent());
+    _procedureTypesBloc = sl<ProcedureTypesBloc>()
+      ..add(FetchProcedureTypesEvent());
+    _supervisorsBloc = sl<SupervisorsBloc>()..add(FetchSupervisorsEvent());
 
-    // Initialize with current day default formatted date string
     _chosenDate = DateTime.now();
     _dateController.text = DateFormat('yyyy-MM-dd').format(_chosenDate!);
   }
@@ -69,25 +80,45 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       initialDate: _chosenDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF0D9488),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF1F2937),
-            ),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: _teal,
+            onPrimary: Colors.white,
+            onSurface: Color(0xFF1F2937),
           ),
-          child: child!,
-        );
-      },
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null && picked != _chosenDate) {
+    if (picked != null) {
       setState(() {
         _chosenDate = picked;
         _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
+  }
+
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final XFile? file = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1280,
+      imageQuality: 70,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    setState(() {
+      _photoBase64 = base64Encode(bytes);
+      _photoPath = file.path;
+    });
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _photoBase64 = null;
+      _photoPath = null;
+    });
   }
 
   void _handleSubmit() {
@@ -96,123 +127,42 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     }
   }
 
-  void _showConfirmPopup() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFCCFBF1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    LucideIcons.alertCircle,
-                    color: Color(0xFF0D9488),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  "تأكيد الإرسال",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "هل أنت متأكد من أنك تريد إرسال هذا الإجراء للمراجعة؟",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 24),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0D9488), Color(0xFF0891B2)],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: _submitProcedure,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          "نعم، إرسال",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFF3F4F6),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "إلغاء",
-                        style: TextStyle(
-                          color: Color(0xFF374151),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void _submitProcedure() {
     Navigator.pop(context);
 
-    // Matches your updated parameter requirements schema exactly
     final parameters = CreateProcedureParameters(
       hospitalId: _selectedHospitalId!,
       procedureTypeId: _selectedProcedureTypeId!,
       patientName: _patientNameController.text.trim(),
       procedureDate: _dateController.text,
-      supervisorId: _selectedSupervisorId!, 
-      notes: _notesController.text.isNotEmpty ? _notesController.text.trim() : null,
+      supervisorId: _selectedSupervisorId,
+      notes: _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : null,
       isOffline: !_isOnline,
+      requestLiveCoSign: _requestLiveCoSign,
+      isEmergency: _isEmergency,
+      photo: _photoBase64,
     );
 
     _createProcedureBloc.add(SubmitCreateProcedureEvent(parameters));
+  }
+
+  void _onCreated(CreateProcedureResult result) {
+    if (result.requiresLiveCoSign) {
+      // Flow 1: hand the co-sign code to the supervisor.
+      context.push(CoSignHandoffRoute.name, extra: result);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم تسجيل الإجراء بنجاح'),
+          backgroundColor: Color(0xFF2E9E6B),
+        ),
+      );
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) context.go('/student-home/procedures');
+      });
+    }
   }
 
   @override
@@ -229,11 +179,10 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(
-                  LucideIcons.arrowRight,
-                  color: Color(0xFF374151),
-                ),
-                onPressed: () => context.pop(),
+                icon: const Icon(LucideIcons.arrowRight, color: Color(0xFF374151)),
+                onPressed: () => context.canPop()
+                    ? context.pop()
+                    : context.go('/student-home/procedures'),
               ),
               const Text(
                 "تسجيل إجراء جديد",
@@ -247,277 +196,457 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
           ),
         ),
       ),
-      body: BlocListener<CreateProcedureBloc, CreateProcedureState>(
+      body: BlocConsumer<CreateProcedureBloc, CreateProcedureState>(
         bloc: _createProcedureBloc,
         listener: (context, state) {
           if (state.isError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('خطأ: ${state.error ?? "حدث خطأ"}'),
-                backgroundColor: Colors.red,
+                content: Text('خطأ: ${state.errorMessage}'),
+                backgroundColor: const Color(0xFFC1483F),
               ),
             );
-          } else if (state.data == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('تم إرسال الإجراء بنجاح'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Future.delayed(const Duration(seconds: 1), () {
-              context.go('/student-home/procedures');
-            });
+          } else if (state.isSuccess && state.data != null) {
+            _onCreated(state.data!);
           }
         },
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Online status panel indicators
-              Container(
-                margin: const EdgeInsets.only(top: 16, right: 20, left: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _isOnline ? const Color(0xFFF0FDF4) : const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _isOnline ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A),
+        builder: (context, state) {
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildConnectivityBanner(),
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel("اختر المستشفى"),
+                        _buildHospitalDropdown(),
+                        const SizedBox(height: 16),
+
+                        _buildLabel("نوع الإجراء"),
+                        _buildProcedureTypeDropdown(),
+                        const SizedBox(height: 16),
+
+                        _buildLabel("اسم المريض"),
+                        TextFormField(
+                          controller: _patientNameController,
+                          decoration: _decoration(
+                            hint: "مثال: محمد ع. (الأحرف الأولى تكفي)",
+                          ),
+                          validator: (v) => v == null || v.trim().isEmpty
+                              ? 'يرجى إدخال اسم المريض'
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildLabel("تاريخ الإجراء"),
+                        TextFormField(
+                          controller: _dateController,
+                          readOnly: true,
+                          onTap: () => _selectDate(context),
+                          decoration: _decoration(
+                            prefixIcon: LucideIcons.calendar,
+                            hint: "اختر تاريخ الإجراء",
+                          ),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'يرجى اختيار التاريخ'
+                              : null,
+                        ),
+                        const SizedBox(height: 20),
+
+                        _buildFlowSection(),
+                        const SizedBox(height: 16),
+
+                        _buildLabel(
+                          _requestLiveCoSign
+                              ? "المشرف (اختياري مع التوقيع المباشر)"
+                              : "المشرف المسؤول",
+                          isRequired: false,
+                        ),
+                        _buildSupervisorDropdown(),
+                        const SizedBox(height: 16),
+
+                        _buildLabel("صورة الجسم (اختياري)", isRequired: false),
+                        _buildPhotoPicker(),
+                        const SizedBox(height: 16),
+
+                        _buildLabel("ملاحظات (اختياري)", isRequired: false),
+                        TextFormField(
+                          controller: _notesController,
+                          maxLines: 3,
+                          decoration: _decoration(
+                            hint: "أضف أي تفاصيل إضافية...",
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        _buildSubmitButton(state.isLoading),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _isOnline ? LucideIcons.wifi : LucideIcons.wifiOff,
-                      color: _isOnline ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-                      size: 20,
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildConnectivityBanner() {
+    return GestureDetector(
+      onTap: () => setState(() => _isOnline = !_isOnline),
+      child: Container(
+        margin: const EdgeInsets.only(top: 16, right: 20, left: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _isOnline ? const Color(0xFFF0FDF4) : const Color(0xFFFEF3C7),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _isOnline
+                ? const Color(0xFFBBF7D0)
+                : const Color(0xFFFDE68A),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _isOnline ? LucideIcons.wifi : LucideIcons.wifiOff,
+              color: _isOnline
+                  ? const Color(0xFF16A34A)
+                  : const Color(0xFFD97706),
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _isOnline ? 'متصل بالإنترنت' : 'وضع عدم الاتصال',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: _isOnline
+                          ? const Color(0xFF166534)
+                          : const Color(0xFF92400E),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _isOnline ? 'متصل بالإنترنت' : 'وضع عدم الاتصال نشط',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: _isOnline ? const Color(0xFF166534) : const Color(0xFF92400E),
-                            ),
-                          ),
-                          Text(
-                            _isOnline ? 'سيتم حفظ البيانات فوراً' : 'سيتم المزامنة تلقائياً عند الاتصال',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _isOnline ? const Color(0xFF16A34A) : const Color(0xFFB45309),
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  Text(
+                    _isOnline
+                        ? 'سيتم الحفظ فوراً'
+                        : 'سيُسجّل كإدخال دون اتصال',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _isOnline
+                          ? const Color(0xFF16A34A)
+                          : const Color(0xFFB45309),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlowSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE6F3F4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFCFE6E8)),
+      ),
+      child: Column(
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            activeColor: _teal,
+            value: _requestLiveCoSign,
+            onChanged: (v) => setState(() => _requestLiveCoSign = v),
+            title: const Text(
+              'طلب توقيع مباشر',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: const Text(
+              'المشرف بجانبك الآن — توقيع بلمسة واحدة (موثّق)',
+              style: TextStyle(fontSize: 12, color: Color(0xFF5B6B73)),
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFCFE6E8)),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            activeColor: const Color(0xFFC1483F),
+            value: _isEmergency,
+            onChanged: (v) => setState(() => _isEmergency = v),
+            title: const Text(
+              'حالة طارئة',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: const Text(
+              'لا يوجد مشرف حاضر — يؤكدها المشرف المناوب لاحقاً',
+              style: TextStyle(fontSize: 12, color: Color(0xFF5B6B73)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoPicker() {
+    if (_photoBase64 == null) {
+      return OutlinedButton.icon(
+        onPressed: _pickPhoto,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _teal,
+          side: const BorderSide(color: Color(0xFFCFE6E8)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        icon: const Icon(LucideIcons.camera, size: 18),
+        label: const Text('إضافة صورة (غير معرِّفة للهوية) +ثقة'),
+      );
+    }
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.file(
+            File(_photoPath!),
+            width: 64,
+            height: 64,
+            fit: BoxFit.cover,
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Text(
+            'تم إرفاق الصورة',
+            style: TextStyle(fontSize: 13, color: Color(0xFF166534)),
+          ),
+        ),
+        IconButton(
+          onPressed: _removePhoto,
+          icon: const Icon(LucideIcons.trash2, color: Color(0xFFC1483F)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHospitalDropdown() {
+    return BlocBuilder<HospitalsBloc, HospitalsState>(
+      bloc: _hospitalsBloc,
+      builder: (context, state) {
+        if (state.isLoading) return const _LoadingBar();
+        final hospitals = state.data ?? [];
+        return DropdownButtonFormField<String>(
+          value: _selectedHospitalId,
+          isExpanded: true,
+          hint: const Text("اختر المستشفى", style: _hintStyle),
+          decoration: _decoration(prefixIcon: LucideIcons.building2),
+          items: hospitals
+              .map(
+                (h) => DropdownMenuItem<String>(
+                  value: h.objectId,
+                  child: Text(h.name, style: const TextStyle(fontSize: 14)),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() => _selectedHospitalId = v),
+          validator: (v) => v == null ? 'يرجى اختيار المستشفى' : null,
+        );
+      },
+    );
+  }
+
+  Widget _buildProcedureTypeDropdown() {
+    return BlocBuilder<ProcedureTypesBloc, ProcedureTypesState>(
+      bloc: _procedureTypesBloc,
+      builder: (context, state) {
+        if (state.isLoading) return const _LoadingBar();
+        final types = state.data ?? [];
+        return DropdownButtonFormField<String>(
+          value: _selectedProcedureTypeId,
+          isExpanded: true,
+          hint: const Text("اختر نوع الإجراء", style: _hintStyle),
+          decoration: _decoration(prefixIcon: LucideIcons.stethoscope),
+          items: types
+              .map(
+                (t) => DropdownMenuItem<String>(
+                  value: t.objectId,
+                  child: Text(t.name, style: const TextStyle(fontSize: 14)),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() => _selectedProcedureTypeId = v),
+          validator: (v) => v == null ? 'يرجى اختيار نوع الإجراء' : null,
+        );
+      },
+    );
+  }
+
+  Widget _buildSupervisorDropdown() {
+    return BlocBuilder<SupervisorsBloc, SupervisorsState>(
+      bloc: _supervisorsBloc,
+      builder: (context, state) {
+        if (state.isLoading) return const _LoadingBar();
+        final supervisors = state.data ?? [];
+        return DropdownButtonFormField<String>(
+          value: _selectedSupervisorId,
+          isExpanded: true,
+          hint: const Text("اختر المشرف المسؤول", style: _hintStyle),
+          decoration: _decoration(prefixIcon: LucideIcons.userCheck),
+          items: supervisors
+              .map(
+                (s) => DropdownMenuItem<String>(
+                  value: s.objectId,
+                  child: Text(s.name, style: const TextStyle(fontSize: 14)),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() => _selectedSupervisorId = v),
+          // Optional: without a supervisor a non-live log stays unconfirmed,
+          // and the backend accepts it either way.
+          validator: (v) {
+            if (!_requestLiveCoSign && v == null) {
+              return 'اختر مشرفاً ليؤكّد الإجراء (أو فعّل التوقيع المباشر)';
+            }
+            return null;
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSubmitButton(bool isLoading) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [_teal, _cyan]),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: _teal.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: isLoading ? null : _handleSubmit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                _requestLiveCoSign ? "تسجيل وطلب التوقيع" : "تسجيل الإجراء",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+      ),
+    );
+  }
 
-              // Form Block
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. Dynamic Hospital Selector
-                      _buildLabel("اختر المستشفى"),
-                      BlocBuilder<HospitalsBloc, HospitalsState>(
-                        bloc: _fetchhospital,
-                        builder: (context, state) {
-                          if (state.isLoading) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: LinearProgressIndicator(color: Color(0xFF0D9488)),
-                              ),
-                            );
-                          }
-                          final backendHospitals = state.data ?? [];
-                          return DropdownButtonFormField<String>(
-                            value: _selectedHospitalId,
-                            hint: const Text(
-                              "ابحث أو اختر المستشفى",
-                              style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                            ),
-                            decoration: _buildInputDecoration(prefixIcon: LucideIcons.search),
-                            items: backendHospitals.map((hospital) {
-                              return DropdownMenuItem<String>(
-                                value: hospital.objectId.toString(),
-                                child: Text(hospital.name, style: const TextStyle(fontSize: 14)),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setState(() => _selectedHospitalId = val),
-                            validator: (value) => value == null ? 'يرجى اختيار المستشفى' : null,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 2. Dynamic Procedure Type Selector
-                      _buildLabel("نوع الإجراء"),
-                      BlocBuilder<ProcedureTypesBloc, ProcedureTypesState>(
-                        bloc: _fetchProcedurestypes,
-                        builder: (context, state) {
-                          if (state.isLoading) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: LinearProgressIndicator(color: Color(0xFF0D9488)),
-                              ),
-                            );
-                          }
-                          final backendProcedures = state.data ?? [];
-                          return DropdownButtonFormField<String>(
-                            value: _selectedProcedureTypeId,
-                            hint: const Text(
-                              "قائمة قابلة للبحث",
-                              style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                            ),
-                            decoration: _buildInputDecoration(prefixIcon: LucideIcons.search),
-                            items: backendProcedures.map((procedure) {
-                              return DropdownMenuItem<String>(
-                                value: procedure.objectId.toString(),
-                                child: Text(procedure.name, style: const TextStyle(fontSize: 14)),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setState(() => _selectedProcedureTypeId = val),
-                            validator: (value) => value == null ? 'يرجى اختيار نوع الإجراء' : null,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 3. Dynamic Supervisor Selection Block
-                      _buildLabel("المشرف المسؤول"),
-                      DropdownButtonFormField<String>(
-                        value: _selectedSupervisorId,
-                        hint: const Text(
-                          "اختر المشرف المسؤول",
-                          style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                        ),
-                        decoration: _buildInputDecoration(prefixIcon: LucideIcons.userCheck),
-                        // Replace placeholder data with dynamic Supervisor BLoC bindings once ready
-                        items: const [
-                          DropdownMenuItem(value: "supervisor_id_1", child: Text("د. أحمد الرشيد")),
-                          DropdownMenuItem(value: "supervisor_id_2", child: Text("د. رانيا الكيلاني")),
-                        ],
-                        onChanged: (val) => setState(() => _selectedSupervisorId = val),
-                        validator: (value) => value == null ? 'يرجى اختيار المشرف' : null,
-                      ),
-                      /* Uncomment this block and match the placeholder architecture when the dynamic Supervisor standard Bloc is built
-                      BlocBuilder<SupervisorsBloc, SupervisorsState>(
-                        bloc: _fetchSupervisors,
-                        builder: (context, state) {
-                          if (state.isLoading) return const LinearProgressIndicator(color: Color(0xFF0D9488));
-                          final supervisorsList = state.data ?? [];
-                          return DropdownButtonFormField<String>(
-                            value: _selectedSupervisorId,
-                            hint: const Text("اختر المشرف المسؤول"),
-                            decoration: _buildInputDecoration(prefixIcon: LucideIcons.userCheck),
-                            items: supervisorsList.map((supervisor) {
-                              return DropdownMenuItem<String>(
-                                value: supervisor.objectId.toString(),
-                                child: Text(supervisor.name),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setState(() => _selectedSupervisorId = val),
-                            validator: (value) => value == null ? 'يرجى اختيار المشرف' : null,
-                          );
-                        },
-                      ),
-                      */
-                      const SizedBox(height: 16),
-
-                      // 4. Patient Name Input (Swapped out from Patient ID identifier variations)
-                      _buildLabel("اسم المريض"),
-                      TextFormField(
-                        controller: _patientNameController,
-                        decoration: _buildInputDecoration(hint: "مثال: محمد عبد الله (الأحرف الأولى اختياري)"),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'يرجى إدخال اسم المريض' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 5. Date Selection Selector Field Component
-                      _buildLabel("تاريخ الإجراء"),
-                      TextFormField(
-                        controller: _dateController,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        decoration: _buildInputDecoration(
-                          prefixIcon: LucideIcons.calendar,
-                          hint: "اختر تاريخ الإجراء",
-                        ),
-                        validator: (value) => value == null || value.isEmpty ? 'يرجى اختيار التاريخ' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 6. Optional Notes Field Block
-                      _buildLabel("ملاحظات (اختياري)", isRequired: false),
-                      TextFormField(
-                        controller: _notesController,
-                        maxLines: 3,
-                        decoration: _buildInputDecoration(hint: "أضف أي ملاحظات أو تفاصيل إضافية..."),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Submission Button Context Framework
-                      BlocBuilder<CreateProcedureBloc, CreateProcedureState>(
-                        bloc: _createProcedureBloc,
-                        builder: (context, state) {
-                          return Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF0D9488), Color(0xFF0891B2)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF0D9488).withOpacity(0.25),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: state.isLoading ? null : _handleSubmit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: state.isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "إرسال للمراجعة",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+  void _showConfirmPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFCCFBF1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(LucideIcons.alertCircle, color: _teal, size: 24),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "تأكيد التسجيل",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _requestLiveCoSign
+                    ? "سيُنشأ رمز توقيع لمرة واحدة لتسليمه للمشرف بجانبك."
+                    : "هل تريد تسجيل هذا الإجراء؟",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitProcedure,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _teal,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "نعم، تسجيل",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFF3F4F6),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "إلغاء",
+                    style: TextStyle(
+                      color: Color(0xFF374151),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -534,12 +663,19 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       child: RichText(
         text: TextSpan(
           text: text,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
           children: [
             if (isRequired)
               const TextSpan(
                 text: " *",
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
           ],
         ),
@@ -547,13 +683,15 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     );
   }
 
-  InputDecoration _buildInputDecoration({String? hint, IconData? prefixIcon}) {
+  InputDecoration _decoration({String? hint, IconData? prefixIcon}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+      hintStyle: _hintStyle,
       filled: true,
       fillColor: Colors.white,
-      prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF9CA3AF), size: 20) : null,
+      prefixIcon: prefixIcon != null
+          ? Icon(prefixIcon, color: const Color(0xFF9CA3AF), size: 20)
+          : null,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -561,7 +699,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF0D9488), width: 2),
+        borderSide: const BorderSide(color: _teal, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -571,6 +709,20 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.red, width: 2),
       ),
+    );
+  }
+}
+
+const _hintStyle = TextStyle(color: Color(0xFF9CA3AF), fontSize: 14);
+
+class _LoadingBar extends StatelessWidget {
+  const _LoadingBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(8.0),
+      child: LinearProgressIndicator(color: _teal),
     );
   }
 }

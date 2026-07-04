@@ -1,21 +1,502 @@
-import 'package:easy_localization/easy_localization.dart';
+import 'package:anestrack_mobile/core/services/service_locator.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/confirm_action_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/pending_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/widgets/co_sign_code_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class SupervisorReviewsScreen extends StatelessWidget {
+const _indigo = Color(0xFF4338CA);
+const _indigoLight = Color(0xFF4F46E5);
+
+class SupervisorReviewsScreen extends StatefulWidget {
   const SupervisorReviewsScreen({super.key});
 
   @override
+  State<SupervisorReviewsScreen> createState() =>
+      _SupervisorReviewsScreenState();
+}
+
+class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
+  late final PendingBloc _pendingBloc;
+  late final ConfirmActionBloc _confirmBloc;
+  late final CoSignActionBloc _coSignBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _pendingBloc = sl<PendingBloc>()..add(FetchPendingEvent());
+    _confirmBloc = sl<ConfirmActionBloc>();
+    _coSignBloc = sl<CoSignActionBloc>();
+  }
+
+  @override
+  void dispose() {
+    _pendingBloc.close();
+    _confirmBloc.close();
+    _coSignBloc.close();
+    super.dispose();
+  }
+
+  void _refresh() => _pendingBloc.add(FetchPendingEvent());
+
+  void _toast(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  void _confirm(Procedure p, String decision) {
+    _confirmBloc.add(
+      SubmitConfirmEvent(
+        ConfirmProcedureParameters(id: p.id, decision: decision),
+      ),
+    );
+  }
+
+  /// Server-mediated fallback co-sign from the pending list (no proximity proof).
+  void _coSignById(Procedure p) {
+    _coSignBloc.add(SubmitCoSignEvent(CoSignParameters(id: p.id)));
+  }
+
+  Future<void> _openCoSignSheet() async {
+    final signed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const CoSignCodeSheet(),
+    );
+    if (signed == true) {
+      _toast('تم توقيع الإجراء — موثّق', const Color(0xFF2E9E6B));
+      _refresh();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Align(
-        alignment: AlignmentDirectional.topStart,
-        child: Text(
-          'nav.procedures'.tr(),
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F8FA),
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<ConfirmActionBloc, ConfirmActionState>(
+            bloc: _confirmBloc,
+            listener: (context, state) {
+              if (state.isSuccess && state.data != null) {
+                final approved = state.data!.status == 'Approved';
+                _toast(
+                  approved ? 'تم تأكيد الإجراء' : 'تم رفض الإجراء',
+                  approved
+                      ? const Color(0xFF2E9E6B)
+                      : const Color(0xFFC1483F),
+                );
+                _refresh();
+              } else if (state.isError) {
+                _toast('خطأ: ${state.errorMessage}', const Color(0xFFC1483F));
+              }
+            },
+          ),
+          BlocListener<CoSignActionBloc, CoSignActionState>(
+            bloc: _coSignBloc,
+            listener: (context, state) {
+              if (state.isSuccess && state.data != null) {
+                _toast('تم توقيع الإجراء', const Color(0xFF2E9E6B));
+                _refresh();
+              } else if (state.isError) {
+                _toast('خطأ: ${state.errorMessage}', const Color(0xFFC1483F));
+              }
+            },
+          ),
+        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            _buildCoSignByCodeButton(),
+            Expanded(child: _buildList()),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.only(top: 60, bottom: 22, right: 20, left: 20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_indigoLight, _indigo],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            "مهام المراجعة",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            "التوقيعات والتأكيدات بانتظارك",
+            style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoSignByCodeButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+      child: InkWell(
+        onTap: _openCoSignSheet,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD6D9F5)),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECEAF9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(LucideIcons.keyRound, color: _indigo),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "توقيع مباشر بالرمز",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      "الطالب بجانبك — أدخل رمزه لتوقيع فوري",
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(LucideIcons.chevronLeft, color: Color(0xFF9CA3AF)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildList() {
+    return BlocBuilder<PendingBloc, PendingState>(
+      bloc: _pendingBloc,
+      builder: (context, state) {
+        if (state.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state.isError) {
+          return _ErrorView(onRetry: _refresh, message: state.errorMessage);
+        }
+        final items = state.data ?? [];
+        if (items.isEmpty) return const _EmptyView();
+        return RefreshIndicator(
+          onRefresh: () async => _refresh(),
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            itemCount: items.length,
+            itemBuilder: (context, idx) => _PendingCard(
+              procedure: items[idx],
+              onConfirm: () => _confirm(items[idx], 'Confirm'),
+              onReject: () => _confirm(items[idx], 'Reject'),
+              onCoSign: () => _coSignById(items[idx]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PendingCard extends StatelessWidget {
+  final Procedure procedure;
+  final VoidCallback onConfirm;
+  final VoidCallback onReject;
+  final VoidCallback onCoSign;
+
+  const _PendingCard({
+    required this.procedure,
+    required this.onConfirm,
+    required this.onReject,
+    required this.onCoSign,
+  });
+
+  String get _date =>
+      (procedure.procedureDate ?? procedure.createdAt ?? '').split('T').first;
+
+  bool get _isConfirmation => procedure.isPendingConfirmation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      procedure.procedureTypeName ?? 'إجراء',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      procedure.studentName ?? 'طالب',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF4B5563),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _KindBadge(isConfirmation: _isConfirmation),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _MetaChip(icon: LucideIcons.building2, text: procedure.hospitalName ?? '—'),
+              _MetaChip(icon: LucideIcons.calendar, text: _date),
+              if (procedure.isEmergency)
+                const _MetaChip(
+                  icon: LucideIcons.triangleAlert,
+                  text: 'طارئ',
+                  color: Color(0xFFC1483F),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_isConfirmation)
+            _buildConfirmActions()
+          else
+            _buildCoSignAwaiting(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmActions() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onReject,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFC1483F),
+              side: const BorderSide(color: Color(0xFFF2CFCC)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            icon: const Icon(LucideIcons.x, size: 16),
+            label: const Text('رفض'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: onConfirm,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E9E6B),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            icon: const Icon(LucideIcons.check, size: 16),
+            label: const Text('تأكيد'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCoSignAwaiting() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F8FA),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(LucideIcons.clock, size: 14, color: Color(0xFF6A5ACD)),
+              SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'بانتظار توقيع مباشر. الأفضل استخدام رمز الطالب (موثّق).',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF5B6B73)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onCoSign,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF6A5ACD),
+                side: const BorderSide(color: Color(0xFFD6D3F0)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              child: const Text('توقيع بدون رمز (تأكيد فقط)'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KindBadge extends StatelessWidget {
+  final bool isConfirmation;
+
+  const _KindBadge({required this.isConfirmation});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isConfirmation
+        ? const Color(0xFFD98C2B)
+        : const Color(0xFF6A5ACD);
+    final bg = isConfirmation
+        ? const Color(0xFFFDF4E7)
+        : const Color(0xFFECEAF9);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Text(
+        isConfirmation ? 'تأكيد' : 'توقيع',
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color? color;
+
+  const _MetaChip({required this.icon, required this.text, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? const Color(0xFF6B7280);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: c),
+        const SizedBox(width: 4),
+        Text(text, style: TextStyle(fontSize: 12, color: c)),
+      ],
+    );
+  }
+}
+
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(LucideIcons.circleCheck, size: 48, color: Color(0xFF2E9E6B)),
+          SizedBox(height: 16),
+          Text(
+            "لا توجد مهام معلّقة",
+            style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final VoidCallback onRetry;
+  final String message;
+
+  const _ErrorView({required this.onRetry, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(LucideIcons.alertCircle, size: 48, color: Color(0xFFEF4444)),
+          const SizedBox(height: 16),
+          const Text(
+            "تعذّر تحميل المهام",
+            style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: onRetry, child: const Text("إعادة المحاولة")),
+        ],
       ),
     );
   }

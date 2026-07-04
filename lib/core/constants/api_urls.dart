@@ -29,6 +29,15 @@ class ApisUrls {
   /// Procedure Feature APIs
   String get listProcedures => '$_baseApiUrl/functions/listProcedures';
   String get createProcedure => '$_baseApiUrl/functions/createProcedure';
+  String get getProcedure => '$_baseApiUrl/functions/getProcedure';
   String get listHospitals => '$_baseApiUrl/functions/listHospitals';
   String get listProcedureTypes => '$_baseApiUrl/functions/listProcedureTypes';
+  String get listSupervisors => '$_baseApiUrl/functions/listSupervisors';
+
+  /// Co-sign & confirmation (reliability) APIs
+  String get coSignProcedure => '$_baseApiUrl/functions/coSignProcedure';
+  String get getCoSignContext => '$_baseApiUrl/functions/getCoSignContext';
+  String get confirmProcedure => '$_baseApiUrl/functions/confirmProcedure';
+  String get listPendingForSupervisor =>
+      '$_baseApiUrl/functions/listPendingForSupervisor';
 }

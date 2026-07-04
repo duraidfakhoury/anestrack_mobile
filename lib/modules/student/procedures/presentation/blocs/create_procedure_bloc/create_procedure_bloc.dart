@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/create_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_state.dart';
@@ -11,7 +12,7 @@ class CreateProcedureBloc
   final Logger _logger = Logger();
 
   CreateProcedureBloc(this.createProcedureUseCase)
-    : super(const BaseState<bool>()) {
+    : super(const BaseState<CreateProcedureResult>()) {
     on<SubmitCreateProcedureEvent>(_onSubmitCreateProcedure);
     on<ResetCreateProcedureEvent>(_onResetCreateProcedure);
   }
@@ -29,9 +30,11 @@ class CreateProcedureBloc
         _logger.e("Failed to create procedure: ${failure.message}");
         emit(state.error(failure));
       },
-      (success) {
-        _logger.i("Procedure created successfully");
-        emit(state.successNotNull(success));
+      (createResult) {
+        _logger.i(
+          "Procedure created (liveCoSign: ${createResult.requiresLiveCoSign})",
+        );
+        emit(state.successNotNull(createResult));
       },
     );
   }
@@ -40,6 +43,6 @@ class CreateProcedureBloc
     ResetCreateProcedureEvent event,
     Emitter<CreateProcedureState> emit,
   ) async {
-    emit(const BaseState<bool>());
+    emit(const BaseState<CreateProcedureResult>());
   }
 }

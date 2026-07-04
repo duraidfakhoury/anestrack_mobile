@@ -2,7 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
-import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_state.dart';
