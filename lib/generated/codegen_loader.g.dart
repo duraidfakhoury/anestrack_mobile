@@ -151,6 +151,18 @@ class CodegenLoader extends AssetLoader{
     "email_value": "m.alsalem@kfsh.sa",
     "role_value": "استشاري تخدير",
     "version": "AnesTrack Supervisor v1.0.0"
+  },
+  "supervisor_students": {
+    "title": "متابعة الطلاب",
+    "search_hint": "ابحث عن طالب...",
+    "no_results": "لا يوجد طلاب",
+    "blocked": "محظور",
+    "year": {
+      "first": "سنة أولى",
+      "second": "سنة ثانية",
+      "third": "سنة ثالثة",
+      "fourth": "سنة رابعة"
+    }
   }
 };
 static const Map<String,dynamic> _en_US = {
@@ -290,6 +302,18 @@ static const Map<String,dynamic> _en_US = {
     "email_value": "m.alsalem@kfsh.sa",
     "role_value": "Consultant Anesthesiologist",
     "version": "AnesTrack Supervisor v1.0.0"
+  },
+  "supervisor_students": {
+    "title": "Student Tracking",
+    "search_hint": "Search for a student...",
+    "no_results": "No students found",
+    "blocked": "Blocked",
+    "year": {
+      "first": "First year",
+      "second": "Second year",
+      "third": "Third year",
+      "fourth": "Fourth year"
+    }
   }
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"ar_SY": _ar_SY, "en_US": _en_US};

@@ -32,6 +32,12 @@ import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/p
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_context_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/confirm_action_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source.dart';
+import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/supervisor/students/data/repositories/student_repository_impl.dart';
+import 'package:anestrack_mobile/modules/supervisor/students/domain/repositories/student_repository.dart';
+import 'package:anestrack_mobile/modules/supervisor/students/domain/usecases/list_students_usecase.dart';
+import 'package:anestrack_mobile/modules/supervisor/students/presentation/blocs/students_bloc/students_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -54,6 +60,11 @@ class ServicesLocator {
       () => HospitalProcedureTypeDataSourceImpl(),
     );
 
+    // Student Data Sources
+    sl.registerLazySingleton<StudentDataSource>(
+      () => StudentDataSourceImpl(),
+    );
+
     // Repositories
     sl.registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(sl<AuthDataSource>()),
@@ -69,6 +80,9 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<SupervisorRepository>(
       () => SupervisorRepositoryImpl(sl<HospitalProcedureTypeDataSource>()),
+    );
+    sl.registerLazySingleton<StudentRepository>(
+      () => StudentRepositoryImpl(sl<StudentDataSource>()),
     );
 
     // Use Cases
@@ -98,6 +112,9 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<ListSupervisorsUseCase>(
       () => ListSupervisorsUseCase(sl<SupervisorRepository>()),
+    );
+    sl.registerLazySingleton<ListStudentsUseCase>(
+      () => ListStudentsUseCase(sl<StudentRepository>()),
     );
 
     // Blocs
@@ -132,6 +149,11 @@ class ServicesLocator {
     );
     sl.registerFactory<ConfirmActionBloc>(
       () => ConfirmActionBloc(sl<ConfirmProcedureUseCase>()),
+    );
+
+    // Supervisor students bloc
+    sl.registerFactory<StudentsBloc>(
+      () => StudentsBloc(sl<ListStudentsUseCase>()),
     );
   }
 }

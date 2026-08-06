@@ -2,9 +2,8 @@
 
 // ignore_for_file: constant_identifier_names
 
-abstract class LocaleKeys {
+abstract class  LocaleKeys {
   static const welcome = 'welcome';
-  static const login = 'login';
   static const emptyField = 'emptyField';
   static const invalidPhoneNumber = 'invalidPhoneNumber';
   static const invalidNumber = 'invalidNumber';
@@ -62,13 +61,11 @@ abstract class LocaleKeys {
   static const anestrack_mobileTitle = 'anestrack_mobileTitle';
   static const enteranestrack_mobileTitle = 'enteranestrack_mobileTitle';
   static const anestrack_mobileDescription = 'anestrack_mobileDescription';
-  static const enteranestrack_mobileDescription =
-      'enteranestrack_mobileDescription';
+  static const enteranestrack_mobileDescription = 'enteranestrack_mobileDescription';
   static const selectAgency = 'selectAgency';
   static const addImages = 'addImages';
   static const removeImage = 'removeImage';
-  static const anestrack_mobileSubmittedSuccessfully =
-      'anestrack_mobileSubmittedSuccessfully';
+  static const anestrack_mobileSubmittedSuccessfully = 'anestrack_mobileSubmittedSuccessfully';
   static const selectAtLeastOneAgency = 'selectAtLeastOneAgency';
   static const submit = 'submit';
   static const open = 'open';
@@ -77,4 +74,75 @@ abstract class LocaleKeys {
   static const rejected = 'rejected';
   static const noanestrack_mobilesFound = 'noanestrack_mobilesFound';
   static const image = 'image';
+  static const app_name = 'app.name';
+  static const app_allrightspreserved = 'app.allrightspreserved';
+  static const app = 'app';
+  static const login_subtitle = 'login.subtitle';
+  static const login_select_role = 'login.select_role';
+  static const login_student = 'login.student';
+  static const login_supervisor = 'login.supervisor';
+  static const login_username = 'login.username';
+  static const login_email = 'login.email';
+  static const login_password = 'login.password';
+  static const login_submit = 'login.submit';
+  static const login_remember_me = 'login.remember_me';
+  static const login_forgot_password = 'login.forgot_password';
+  static const login_no_account = 'login.no_account';
+  static const login_contact_admin = 'login.contact_admin';
+  static const login_errors_invalid_credentials = 'login.errors.invalid_credentials';
+  static const login_errors_role_mismatch = 'login.errors.role_mismatch';
+  static const login_errors_generic = 'login.errors.generic';
+  static const login_errors = 'login.errors';
+  static const login = 'login';
+  static const nav_home = 'nav.home';
+  static const nav_procedures = 'nav.procedures';
+  static const nav_education = 'nav.education';
+  static const nav_library = 'nav.library';
+  static const nav_more = 'nav.more';
+  static const nav_review = 'nav.review';
+  static const nav_students = 'nav.students';
+  static const nav_academic = 'nav.academic';
+  static const nav_settings = 'nav.settings';
+  static const nav = 'nav';
+  static const more_settingsandmoreoptions = 'more.settingsandmoreoptions';
+  static const more_profile = 'more.profile';
+  static const more_educationalplan = 'more.educationalplan';
+  static const more_complaint = 'more.complaint';
+  static const more_settings = 'more.settings';
+  static const more_help = 'more.help';
+  static const more_about = 'more.about';
+  static const more_logout = 'more.logout';
+  static const more_viewandedityourinfo = 'more.viewandedityourinfo';
+  static const more_requirmentsandskillsrequired = 'more.requirmentsandskillsrequired';
+  static const more_fileacomplaint = 'more.fileacomplaint';
+  static const more_configureyourappsettings = 'more.configureyourappsettings';
+  static const more_commonlyaskedquestionsandtechnicalsupport = 'more.commonlyaskedquestionsandtechnicalsupport';
+  static const more = 'more';
+  static const supervisor_more_subtitle = 'supervisor_more.subtitle';
+  static const supervisor_more_email_notifications = 'supervisor_more.email_notifications';
+  static const supervisor_more_email_notifications_subtitle = 'supervisor_more.email_notifications_subtitle';
+  static const supervisor_more_push_notifications = 'supervisor_more.push_notifications';
+  static const supervisor_more_push_notifications_subtitle = 'supervisor_more.push_notifications_subtitle';
+  static const supervisor_more_privacy_security = 'supervisor_more.privacy_security';
+  static const supervisor_more_privacy_security_subtitle = 'supervisor_more.privacy_security_subtitle';
+  static const supervisor_more_account_info = 'supervisor_more.account_info';
+  static const supervisor_more_name_label = 'supervisor_more.name_label';
+  static const supervisor_more_email_label = 'supervisor_more.email_label';
+  static const supervisor_more_role_label = 'supervisor_more.role_label';
+  static const supervisor_more_name_value = 'supervisor_more.name_value';
+  static const supervisor_more_email_value = 'supervisor_more.email_value';
+  static const supervisor_more_role_value = 'supervisor_more.role_value';
+  static const supervisor_more_version = 'supervisor_more.version';
+  static const supervisor_more = 'supervisor_more';
+  static const supervisor_students_title = 'supervisor_students.title';
+  static const supervisor_students_search_hint = 'supervisor_students.search_hint';
+  static const supervisor_students_no_results = 'supervisor_students.no_results';
+  static const supervisor_students_blocked = 'supervisor_students.blocked';
+  static const supervisor_students_year_first = 'supervisor_students.year.first';
+  static const supervisor_students_year_second = 'supervisor_students.year.second';
+  static const supervisor_students_year_third = 'supervisor_students.year.third';
+  static const supervisor_students_year_fourth = 'supervisor_students.year.fourth';
+  static const supervisor_students_year = 'supervisor_students.year';
+  static const supervisor_students = 'supervisor_students';
+
 }

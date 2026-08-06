@@ -135,5 +135,17 @@
         "email_value": "m.alsalem@kfsh.sa",
         "role_value": "استشاري تخدير",
         "version": "AnesTrack Supervisor v1.0.0"
+    },
+    "supervisor_students": {
+        "title": "متابعة الطلاب",
+        "search_hint": "ابحث عن طالب...",
+        "no_results": "لا يوجد طلاب",
+        "blocked": "محظور",
+        "year": {
+            "first": "سنة أولى",
+            "second": "سنة ثانية",
+            "third": "سنة ثالثة",
+            "fourth": "سنة رابعة"
+        }
     }
 }
