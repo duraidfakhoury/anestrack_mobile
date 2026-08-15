@@ -3,11 +3,14 @@ import 'package:anestrack_mobile/modules/student/more/presentation/routes/studen
 import 'package:anestrack_mobile/modules/student/presentation/routes/student_shell_route.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/create_procedure_route.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/co_sign_handoff_route.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/ble_debug_student_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/presentation/routes/supervisor_home_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/presentation/routes/supervisor_shell_route.dart';
 import 'package:anestrack_mobile/modules/common/profile/presentation/routes/profile_route.dart';
 import 'package:anestrack_mobile/modules/common/notifications/presentation/routes/notifications_route.dart';
 import 'package:anestrack_mobile/modules/common/announcements/presentation/routes/announcements_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/co_sign_scan_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/ble_debug_supervisor_route.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../modules/auth/presentation/routes/login_route.dart';
@@ -43,6 +46,9 @@ class AppRoutes {
       ProfileRoute.route,
       NotificationsRoute.route,
       AnnouncementsRoute.route,
+      CoSignScanRoute.route,
+      BleDebugStudentRoute.route,
+      BleDebugSupervisorRoute.route,
     ],
   );
 }

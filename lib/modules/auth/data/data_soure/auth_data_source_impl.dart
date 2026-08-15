@@ -24,6 +24,7 @@ class AuthDataSourceImpl extends AuthDataSource {
       jsonEncode((loginResponse.user as UserModel).toJson()),
     );
     await CacheService().setUserRole(loginResponse.user.userType);
+    await CacheService().setUserId(loginResponse.objectId);
     return loginResponse;
   }
 
