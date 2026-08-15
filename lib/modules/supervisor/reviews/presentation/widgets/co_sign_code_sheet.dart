@@ -1,8 +1,10 @@
 import 'package:anestrack_mobile/core/services/service_locator.dart';
+import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/co_sign_context.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_context_bloc.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,11 +13,30 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 const _indigo = Color(0xFF4338CA);
 
 /// Supervisor co-sign-by-code flow. The student's phone shows a one-time code
-/// (BLE/QR/read aloud); the supervisor enters it here. We preview the non-PII
-/// context (`getCoSignContext`), then co-sign (`coSignProcedure`). Possessing
-/// the code proves proximity, so this yields the top **Verified** tier.
+/// (BLE/QR/read aloud); the supervisor enters it here — or it arrives
+/// pre-filled via [initialCode] when detected over BLE or scanned via QR
+/// (see `CoSignScanScreen`). We preview the non-PII context
+/// (`getCoSignContext`), then co-sign (`coSignProcedure`). Possessing the
+/// code proves proximity, so this yields the top **Verified** tier.
 class CoSignCodeSheet extends StatefulWidget {
-  const CoSignCodeSheet({super.key});
+  /// Pre-fills the code and auto-triggers the preview, when opened as the
+  /// result of a BLE detection or a QR scan rather than manual entry.
+  final String? initialCode;
+
+  /// How the code was obtained: `'MANUAL'` (default), `'QR'`, or `'BLE'`.
+  /// Recorded as proximity evidence on the `coSignProcedure` call.
+  final String proximityMethod;
+
+  /// Extra proximity evidence to send alongside [proximityMethod], e.g.
+  /// `{'proximityVerified': true, 'rssi': -58}` for a BLE detection.
+  final Map<String, dynamic>? proximityExtra;
+
+  const CoSignCodeSheet({
+    super.key,
+    this.initialCode,
+    this.proximityMethod = 'MANUAL',
+    this.proximityExtra,
+  });
 
   @override
   State<CoSignCodeSheet> createState() => _CoSignCodeSheetState();
@@ -31,6 +52,11 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
     super.initState();
     _contextBloc = sl<CoSignContextBloc>();
     _actionBloc = sl<CoSignActionBloc>();
+    final initialCode = widget.initialCode;
+    if (initialCode != null && initialCode.isNotEmpty) {
+      _codeController.text = initialCode;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _preview());
+    }
   }
 
   @override
@@ -55,7 +81,10 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
       SubmitCoSignEvent(
         CoSignParameters(
           coSignCode: _normalizedCode,
-          proximity: const {'method': 'MANUAL'},
+          proximity: {
+            'method': widget.proximityMethod,
+            ...?widget.proximityExtra,
+          },
         ),
       ),
     );
@@ -73,13 +102,34 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: BlocListener<CoSignActionBloc, CoSignActionState>(
-          bloc: _actionBloc,
-          listener: (context, state) {
-            if (state.isSuccess && state.data != null) {
-              Navigator.pop(context, true);
-            }
-          },
+        child: MultiBlocListener(
+          listeners: [
+            BlocListener<CoSignActionBloc, CoSignActionState>(
+              bloc: _actionBloc,
+              listener: (context, state) {
+                if (state.isSuccess && state.data != null) {
+                  Navigator.pop(context, true);
+                }
+              },
+            ),
+            if (widget.initialCode != null)
+              // Auto-detected (BLE/QR) codes are opaque to the user — an
+              // invalid one (ambient BLE noise, an expired/reused QR, ...)
+              // isn't actionable by retyping, so don't strand them on a
+              // dead-end error. Close automatically so the scan screen can
+              // resume looking for the real device, same as if they'd
+              // dismissed it manually.
+              BlocListener<CoSignContextBloc, CoSignContextState>(
+                bloc: _contextBloc,
+                listener: (context, state) {
+                  if (state.isError) {
+                    Future.delayed(const Duration(seconds: 2), () {
+                      if (context.mounted) Navigator.pop(context, false);
+                    });
+                  }
+                },
+              ),
+          ],
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -95,18 +145,18 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
                   ),
                 ),
               ),
-              const Text(
-                'توقيع بالرمز',
-                style: TextStyle(
+              Text(
+                LocaleKeys.co_sign_sheet_title.tr(),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1F2937),
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'أدخل الرمز الظاهر على هاتف الطالب',
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              Text(
+                LocaleKeys.co_sign_sheet_subtitle.tr(),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -123,7 +173,7 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F ]')),
                 ],
                 decoration: InputDecoration(
-                  hintText: 'xxxx xxxx xxxx ...',
+                  hintText: LocaleKeys.co_sign_code_hint.tr(),
                   filled: true,
                   fillColor: const Color(0xFFF5F8FA),
                   border: OutlineInputBorder(
@@ -182,7 +232,9 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF2E9E6B),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -193,15 +245,18 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
                                       ),
                                     )
                                   : const Icon(LucideIcons.check, size: 18),
-                              label: const Text(
-                                '✓ توقيع الإجراء',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              label: Text(
+                                LocaleKeys.co_sign_action_button.tr(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
@@ -227,9 +282,9 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
         padding: const EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      child: const Text(
-        'معاينة',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      child: Text(
+        LocaleKeys.co_sign_preview_button.tr(),
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
       ),
     );
   }
@@ -266,7 +321,8 @@ class _ContextPreview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  context.studentName ?? 'طالب',
+                  context.studentName ??
+                      LocaleKeys.co_sign_default_student.tr(),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -275,8 +331,12 @@ class _ContextPreview extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  context.procedureType ?? 'إجراء طبي',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF5B6B73)),
+                  context.procedureType ??
+                      LocaleKeys.co_sign_default_procedure.tr(),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF5B6B73),
+                  ),
                 ),
               ],
             ),
@@ -304,7 +364,11 @@ class _ErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(LucideIcons.circleAlert, color: Color(0xFFC1483F), size: 18),
+          const Icon(
+            LucideIcons.circleAlert,
+            color: Color(0xFFC1483F),
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

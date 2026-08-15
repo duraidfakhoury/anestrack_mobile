@@ -1,4 +1,5 @@
-import 'package:anestrack_mobile/core/services/google_auth_service.dart';
+import 'package:anestrack_mobile/core/services/ble/supervisor_code_ble_scanner.dart';
+import 'package:anestrack_mobile/core/services/ble/student_code_ble_advertiser.dart';
 import 'package:anestrack_mobile/core/themes/bloc/theme_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:anestrack_mobile/modules/auth/data/data_soure/auth_data_source.dart';
@@ -25,6 +26,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_supervisors_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/supervisors_bloc/supervisors_bloc.dart';
@@ -32,6 +34,7 @@ import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/p
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_context_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/confirm_action_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/live_co_sign_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/repositories/student_repository_impl.dart';
@@ -47,7 +50,14 @@ class ServicesLocator {
   factory ServicesLocator() => _instance ??= ServicesLocator._();
 
   void init() {
-    sl.registerLazySingleton<GoogleAuthService>(() => GoogleAuthService());
+    // BLE Live Co-Sign protocol — student advertises its co-sign code,
+    // supervisor scans for it.
+    sl.registerLazySingleton<StudentCodeBleAdvertiser>(
+      () => StudentCodeBleAdvertiserImpl(),
+    );
+    sl.registerLazySingleton<SupervisorCodeBleScanner>(
+      () => SupervisorCodeBleScannerImpl(),
+    );
 
     // Auth Data Sources
     sl.registerLazySingleton<AuthDataSource>(() => AuthDataSourceImpl());
@@ -61,9 +71,7 @@ class ServicesLocator {
     );
 
     // Student Data Sources
-    sl.registerLazySingleton<StudentDataSource>(
-      () => StudentDataSourceImpl(),
-    );
+    sl.registerLazySingleton<StudentDataSource>(() => StudentDataSourceImpl());
 
     // Repositories
     sl.registerLazySingleton<AuthRepository>(
@@ -120,7 +128,9 @@ class ServicesLocator {
     // Blocs
     sl.registerFactory<ThemeBloc>(() => ThemeBloc());
     sl.registerFactory<LoginBloc>(() => LoginBloc(sl<AuthRepository>()));
-    sl.registerFactory<LogoutBloc>(() => LogoutBloc(sl<AuthRepository>()));
+    sl.registerFactory<LogoutBloc>(
+      () => LogoutBloc(sl<AuthRepository>(), sl<SupervisorCodeBleScanner>()),
+    );
     sl.registerFactory<ProceduresBloc>(
       () => ProceduresBloc(sl<ListProceduresUseCase>()),
     );
@@ -136,6 +146,9 @@ class ServicesLocator {
     sl.registerFactory<SupervisorsBloc>(
       () => SupervisorsBloc(sl<ListSupervisorsUseCase>()),
     );
+    sl.registerFactory<CoSignBleBloc>(
+      () => CoSignBleBloc(sl<StudentCodeBleAdvertiser>()),
+    );
 
     // Supervisor review / co-sign blocs
     sl.registerFactory<PendingBloc>(
@@ -149,6 +162,9 @@ class ServicesLocator {
     );
     sl.registerFactory<ConfirmActionBloc>(
       () => ConfirmActionBloc(sl<ConfirmProcedureUseCase>()),
+    );
+    sl.registerFactory<LiveCoSignBloc>(
+      () => LiveCoSignBloc(sl<SupervisorCodeBleScanner>()),
     );
 
     // Supervisor students bloc

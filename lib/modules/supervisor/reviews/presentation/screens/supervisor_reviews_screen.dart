@@ -1,13 +1,21 @@
+import 'package:anestrack_mobile/core/services/ble/supervisor_code_ble_scanner.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
+import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/confirm_action_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/live_co_sign_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/pending_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/ble_debug_supervisor_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/co_sign_scan_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/widgets/co_sign_code_sheet.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 const _indigo = Color(0xFF4338CA);
@@ -25,6 +33,7 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
   late final PendingBloc _pendingBloc;
   late final ConfirmActionBloc _confirmBloc;
   late final CoSignActionBloc _coSignBloc;
+  late final LiveCoSignBloc _liveCoSignBloc;
 
   @override
   void initState() {
@@ -32,6 +41,7 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
     _pendingBloc = sl<PendingBloc>()..add(FetchPendingEvent());
     _confirmBloc = sl<ConfirmActionBloc>();
     _coSignBloc = sl<CoSignActionBloc>();
+    _liveCoSignBloc = sl<LiveCoSignBloc>();
   }
 
   @override
@@ -39,15 +49,16 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
     _pendingBloc.close();
     _confirmBloc.close();
     _coSignBloc.close();
+    _liveCoSignBloc.close();
     super.dispose();
   }
 
   void _refresh() => _pendingBloc.add(FetchPendingEvent());
 
   void _toast(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   void _confirm(Procedure p, String decision) {
@@ -76,6 +87,40 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
     }
   }
 
+  Future<void> _openNearMeScan() async {
+    final signed = await context.push<bool>(CoSignScanRoute.name);
+    if (signed == true) {
+      _toast(
+        LocaleKeys.co_sign_co_signed_success.tr(),
+        const Color(0xFF2E9E6B),
+      );
+      _refresh();
+    }
+  }
+
+  /// A nearby student's co-sign code arrived over BLE (see [LiveCoSignBloc])
+  /// — open the same confirmation sheet the QR flow uses, pre-filled, so the
+  /// supervisor still has to tap to confirm before the co-sign API is
+  /// called.
+  Future<void> _onBleCodeDetected(StudentCodeDetection detection) async {
+    final signed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CoSignCodeSheet(
+        initialCode: detection.coSignCode,
+        proximityMethod: 'BLE',
+        proximityExtra: {'rssi': detection.rssi},
+      ),
+    );
+    _liveCoSignBloc.add(StudentCodeHandledEvent());
+    if (!mounted) return;
+    if (signed == true) {
+      _toast('تم توقيع الإجراء — موثّق', const Color(0xFF2E9E6B));
+      _refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,9 +134,7 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
                 final approved = state.data!.status == 'Approved';
                 _toast(
                   approved ? 'تم تأكيد الإجراء' : 'تم رفض الإجراء',
-                  approved
-                      ? const Color(0xFF2E9E6B)
-                      : const Color(0xFFC1483F),
+                  approved ? const Color(0xFF2E9E6B) : const Color(0xFFC1483F),
                 );
                 _refresh();
               } else if (state.isError) {
@@ -110,17 +153,128 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
               }
             },
           ),
+          BlocListener<LiveCoSignBloc, LiveCoSignState>(
+            bloc: _liveCoSignBloc,
+            listenWhen: (previous, current) =>
+                previous.detectedCode != current.detectedCode,
+            listener: (context, state) {
+              final detection = state.detectedCode;
+              if (detection != null) _onBleCodeDetected(detection);
+            },
+          ),
         ],
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildHeader(),
+            _buildLiveCoSignToggle(),
             _buildCoSignByCodeButton(),
+            _buildNearMeScanButton(),
             Expanded(child: _buildList()),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildLiveCoSignToggle() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: BlocBuilder<LiveCoSignBloc, LiveCoSignState>(
+        bloc: _liveCoSignBloc,
+        builder: (context, state) {
+          final isOn = state.status == LiveCoSignStatus.on;
+          final isStarting = state.status == LiveCoSignStatus.starting;
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isOn ? const Color(0xFFECEAF9) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isOn ? _indigo : const Color(0xFFD6D9F5),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isOn ? _indigo : const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isOn ? LucideIcons.bluetooth : LucideIcons.bluetoothOff,
+                    color: isOn ? Colors.white : const Color(0xFF9CA3AF),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        LocaleKeys.live_co_sign_title.tr(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _liveCoSignSubtitle(state.status),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isStarting)
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Switch(
+                    value: isOn,
+                    activeThumbColor: _indigo,
+                    onChanged: (value) =>
+                        _liveCoSignBloc.add(ToggleLiveCoSignEvent(value)),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _liveCoSignSubtitle(LiveCoSignStatus status) {
+    switch (status) {
+      case LiveCoSignStatus.on:
+        return LocaleKeys.live_co_sign_subtitle_on.tr();
+      case LiveCoSignStatus.starting:
+        return LocaleKeys.live_co_sign_starting.tr();
+      case LiveCoSignStatus.bluetoothUnavailable:
+        return LocaleKeys.live_co_sign_bluetooth_unavailable.tr();
+      case LiveCoSignStatus.permissionDenied:
+        return LocaleKeys.live_co_sign_permission_denied.tr();
+      case LiveCoSignStatus.error:
+        return LocaleKeys.live_co_sign_error.tr();
+      case LiveCoSignStatus.off:
+        return LocaleKeys.live_co_sign_subtitle_off.tr();
+    }
   }
 
   Widget _buildHeader() {
@@ -137,22 +291,33 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
           bottomRight: Radius.circular(24),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            "مهام المراجعة",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+      child: Row(
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "مهام المراجعة",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "التوقيعات والتأكيدات بانتظارك",
+                  style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 13),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 4),
-          Text(
-            "التوقيعات والتأكيدات بانتظارك",
-            style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 13),
-          ),
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(LucideIcons.bug, color: Colors.white70),
+              onPressed: () => context.push(BleDebugSupervisorRoute.name),
+            ),
         ],
       ),
     );
@@ -206,6 +371,69 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
                     Text(
                       "الطالب بجانبك — أدخل رمزه لتوقيع فوري",
                       style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(LucideIcons.chevronLeft, color: Color(0xFF9CA3AF)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNearMeScanButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: InkWell(
+        onTap: _openNearMeScan,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD6D9F5)),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECEAF9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(LucideIcons.qrCode, color: _indigo),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      LocaleKeys.co_sign_near_me_title.tr(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      LocaleKeys.co_sign_near_me_subtitle.tr(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
                     ),
                   ],
                 ),
@@ -314,7 +542,10 @@ class _PendingCard extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              _MetaChip(icon: LucideIcons.building2, text: procedure.hospitalName ?? '—'),
+              _MetaChip(
+                icon: LucideIcons.building2,
+                text: procedure.hospitalName ?? '—',
+              ),
               _MetaChip(icon: LucideIcons.calendar, text: _date),
               if (procedure.isEmergency)
                 const _MetaChip(
@@ -425,10 +656,17 @@ class _KindBadge extends StatelessWidget {
         : const Color(0xFFECEAF9);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Text(
         isConfirmation ? 'تأكيد' : 'توقيع',
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -488,14 +726,21 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(LucideIcons.alertCircle, size: 48, color: Color(0xFFEF4444)),
+          const Icon(
+            LucideIcons.alertCircle,
+            size: 48,
+            color: Color(0xFFEF4444),
+          ),
           const SizedBox(height: 16),
           const Text(
             "تعذّر تحميل المهام",
             style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: onRetry, child: const Text("إعادة المحاولة")),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: const Text("إعادة المحاولة"),
+          ),
         ],
       ),
     );

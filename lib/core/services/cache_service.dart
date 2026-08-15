@@ -84,11 +84,25 @@ class CacheService {
 
   String get userRole => _preferences?.getString(_Keys.userRole) ?? "";
 
+  // Backend account id (Parse `objectId`) of the logged-in user. Needed to
+  // derive the supervisor's BLE identifier for Live Co-Sign advertising —
+  // not persisted anywhere else in the app before this.
+  Future<void> setUserId(String userId) async =>
+      await _preferences?.setString(_Keys.userId, userId);
+
+  bool get hasUserId => _preferences?.containsKey(_Keys.userId) ?? false;
+
+  Future<void> removeUserId() async =>
+      await _preferences?.remove(_Keys.userId);
+
+  String get userId => _preferences?.getString(_Keys.userId) ?? "";
+
   Future<void> clearAuth() async {
     await removeToken();
     await removeRefreshToken();
     await removeUser();
     await removeUserRole();
+    await removeUserId();
   }
 }
 
@@ -99,4 +113,5 @@ class _Keys {
   static const String language = "language";
   static const String user = "user";
   static const String userRole = "user_role";
+  static const String userId = "user_id";
 }

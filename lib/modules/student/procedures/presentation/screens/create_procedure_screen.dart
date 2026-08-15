@@ -99,20 +99,29 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     }
   }
 
-  Future<void> _pickPhoto() async {
-    final picker = ImagePicker();
-    final XFile? file = await picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1280,
-      imageQuality: 70,
-    );
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    setState(() {
-      _photoBase64 = base64Encode(bytes);
-      _photoPath = file.path;
-    });
-  }
+Future<void> _pickPhoto() async {
+  final picker = ImagePicker();
+  final XFile? file = await picker.pickImage(
+    source: ImageSource.camera,
+    maxWidth: 800,       // Dropped slightly to guarantee smaller payload
+    maxHeight: 800,
+    imageQuality: 60,    // 60% quality is plenty for medical log photos
+  );
+  if (file == null) return;
+
+  final bytes = await file.readAsBytes();
+  
+  // 1. Convert to raw base64
+  String rawBase64 = base64Encode(bytes);
+
+  // 2. STRIP ALL NEWLINES (\r and \n) AND SPACES
+  String cleanBase64 = rawBase64.replaceAll(RegExp(r'[\r\n\s]'), '');
+
+  setState(() {
+    _photoBase64 = 'data:image/jpeg;base64,$cleanBase64';
+    _photoPath = file.path;
+  });
+}
 
   void _removePhoto() {
     setState(() {
@@ -179,7 +188,10 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(LucideIcons.arrowRight, color: Color(0xFF374151)),
+                icon: const Icon(
+                  LucideIcons.arrowRight,
+                  color: Color(0xFF374151),
+                ),
                 onPressed: () => context.canPop()
                     ? context.pop()
                     : context.go('/student-home/procedures'),
@@ -338,9 +350,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
                     ),
                   ),
                   Text(
-                    _isOnline
-                        ? 'سيتم الحفظ فوراً'
-                        : 'سيُسجّل كإدخال دون اتصال',
+                    _isOnline ? 'سيتم الحفظ فوراً' : 'سيُسجّل كإدخال دون اتصال',
                     style: TextStyle(
                       fontSize: 12,
                       color: _isOnline
@@ -409,7 +419,9 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
           foregroundColor: _teal,
           side: const BorderSide(color: Color(0xFFCFE6E8)),
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         icon: const Icon(LucideIcons.camera, size: 18),
         label: const Text('إضافة صورة (غير معرِّفة للهوية) +ثقة'),
@@ -546,7 +558,9 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: isLoading
             ? const SizedBox(
@@ -587,7 +601,11 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
                   color: Color(0xFFCCFBF1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(LucideIcons.alertCircle, color: _teal, size: 24),
+                child: const Icon(
+                  LucideIcons.alertCircle,
+                  color: _teal,
+                  size: 24,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(

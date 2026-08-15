@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>يستخدم التطبيق البلوتوث للتحقق من وجود مشرف مسجّل قريب عند التوقيع المباشر على الإجراء، دون تتبع موقعك.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>يستخدم التطبيق البلوتوث (للمشرفين) لبث توفّرك للتوقيع المباشر على إجراءات الطلاب القريبين، عند تفعيل هذه الخاصية.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>يستخدم التطبيق الكاميرا لمسح رمز QR الخاص بتوقيع الإجراء المباشر.</string>
 </dict>
 </plist>

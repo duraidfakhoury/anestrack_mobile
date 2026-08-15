@@ -1,0 +1,8 @@
+build/
+.dart_tool/
+.git/
+android/
+ios/
+web/
+windows/
+resources/
