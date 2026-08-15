@@ -38,6 +38,31 @@ import 'package:anestrack_mobile/modules/supervisor/students/data/repositories/s
 import 'package:anestrack_mobile/modules/supervisor/students/domain/repositories/student_repository.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/domain/usecases/list_students_usecase.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/presentation/blocs/students_bloc/students_bloc.dart';
+import 'package:anestrack_mobile/modules/common/profile/data/datasources/profile_data_source.dart';
+import 'package:anestrack_mobile/modules/common/profile/data/datasources/profile_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/common/profile/data/repositories/profile_repository_impl.dart';
+import 'package:anestrack_mobile/modules/common/profile/domain/repositories/profile_repository.dart';
+import 'package:anestrack_mobile/modules/common/profile/domain/usecases/get_current_user_usecase.dart';
+import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
+import 'package:anestrack_mobile/modules/student/complaints/data/datasources/complaint_data_source.dart';
+import 'package:anestrack_mobile/modules/student/complaints/data/datasources/complaint_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/complaints/data/repositories/complaint_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/complaints/domain/repositories/complaint_repository.dart';
+import 'package:anestrack_mobile/modules/student/complaints/domain/usecases/create_complaint_usecase.dart';
+import 'package:anestrack_mobile/modules/student/complaints/presentation/blocs/complaint_bloc.dart';
+import 'package:anestrack_mobile/modules/common/notifications/data/datasources/notification_data_source.dart';
+import 'package:anestrack_mobile/modules/common/notifications/data/datasources/notification_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/common/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:anestrack_mobile/modules/common/notifications/domain/repositories/notification_repository.dart';
+import 'package:anestrack_mobile/modules/common/notifications/domain/usecases/notification_usecases.dart';
+import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs/notifications_bloc.dart';
+import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs/unread_count_bloc.dart';
+import 'package:anestrack_mobile/modules/common/announcements/data/datasources/announcement_data_source.dart';
+import 'package:anestrack_mobile/modules/common/announcements/data/datasources/announcement_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/common/announcements/data/repositories/announcement_repository_impl.dart';
+import 'package:anestrack_mobile/modules/common/announcements/domain/repositories/announcement_repository.dart';
+import 'package:anestrack_mobile/modules/common/announcements/domain/usecases/list_announcements_usecase.dart';
+import 'package:anestrack_mobile/modules/common/announcements/presentation/blocs/announcements_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -65,6 +90,26 @@ class ServicesLocator {
       () => StudentDataSourceImpl(),
     );
 
+    // Profile Data Source
+    sl.registerLazySingleton<ProfileDataSource>(
+      () => ProfileDataSourceImpl(),
+    );
+
+    // Complaint Data Source
+    sl.registerLazySingleton<ComplaintDataSource>(
+      () => ComplaintDataSourceImpl(),
+    );
+
+    // Notification Data Source
+    sl.registerLazySingleton<NotificationDataSource>(
+      () => NotificationDataSourceImpl(),
+    );
+
+    // Announcement Data Source
+    sl.registerLazySingleton<AnnouncementDataSource>(
+      () => AnnouncementDataSourceImpl(),
+    );
+
     // Repositories
     sl.registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(sl<AuthDataSource>()),
@@ -83,6 +128,18 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<StudentRepository>(
       () => StudentRepositoryImpl(sl<StudentDataSource>()),
+    );
+    sl.registerLazySingleton<ProfileRepository>(
+      () => ProfileRepositoryImpl(sl<ProfileDataSource>()),
+    );
+    sl.registerLazySingleton<ComplaintRepository>(
+      () => ComplaintRepositoryImpl(sl<ComplaintDataSource>()),
+    );
+    sl.registerLazySingleton<NotificationRepository>(
+      () => NotificationRepositoryImpl(sl<NotificationDataSource>()),
+    );
+    sl.registerLazySingleton<AnnouncementRepository>(
+      () => AnnouncementRepositoryImpl(sl<AnnouncementDataSource>()),
     );
 
     // Use Cases
@@ -115,6 +172,27 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<ListStudentsUseCase>(
       () => ListStudentsUseCase(sl<StudentRepository>()),
+    );
+    sl.registerLazySingleton<GetCurrentUserUseCase>(
+      () => GetCurrentUserUseCase(sl<ProfileRepository>()),
+    );
+    sl.registerLazySingleton<CreateComplaintUseCase>(
+      () => CreateComplaintUseCase(sl<ComplaintRepository>()),
+    );
+    sl.registerLazySingleton<ListNotificationsUseCase>(
+      () => ListNotificationsUseCase(sl<NotificationRepository>()),
+    );
+    sl.registerLazySingleton<GetUnreadCountUseCase>(
+      () => GetUnreadCountUseCase(sl<NotificationRepository>()),
+    );
+    sl.registerLazySingleton<MarkNotificationReadUseCase>(
+      () => MarkNotificationReadUseCase(sl<NotificationRepository>()),
+    );
+    sl.registerLazySingleton<MarkAllNotificationsReadUseCase>(
+      () => MarkAllNotificationsReadUseCase(sl<NotificationRepository>()),
+    );
+    sl.registerLazySingleton<ListAnnouncementsUseCase>(
+      () => ListAnnouncementsUseCase(sl<AnnouncementRepository>()),
     );
 
     // Blocs
@@ -154,6 +232,33 @@ class ServicesLocator {
     // Supervisor students bloc
     sl.registerFactory<StudentsBloc>(
       () => StudentsBloc(sl<ListStudentsUseCase>()),
+    );
+
+    // Profile
+    sl.registerFactory<CurrentUserBloc>(
+      () => CurrentUserBloc(sl<GetCurrentUserUseCase>()),
+    );
+
+    // Complaint
+    sl.registerFactory<ComplaintBloc>(
+      () => ComplaintBloc(sl<CreateComplaintUseCase>()),
+    );
+
+    // Notifications
+    sl.registerFactory<NotificationsBloc>(
+      () => NotificationsBloc(
+        sl<ListNotificationsUseCase>(),
+        sl<MarkNotificationReadUseCase>(),
+        sl<MarkAllNotificationsReadUseCase>(),
+      ),
+    );
+    sl.registerFactory<UnreadCountBloc>(
+      () => UnreadCountBloc(sl<GetUnreadCountUseCase>()),
+    );
+
+    // Announcements
+    sl.registerFactory<AnnouncementsBloc>(
+      () => AnnouncementsBloc(sl<ListAnnouncementsUseCase>()),
     );
   }
 }

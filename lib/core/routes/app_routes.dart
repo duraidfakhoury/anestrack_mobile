@@ -5,6 +5,9 @@ import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/co_sign_handoff_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/presentation/routes/supervisor_home_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/presentation/routes/supervisor_shell_route.dart';
+import 'package:anestrack_mobile/modules/common/profile/presentation/routes/profile_route.dart';
+import 'package:anestrack_mobile/modules/common/notifications/presentation/routes/notifications_route.dart';
+import 'package:anestrack_mobile/modules/common/announcements/presentation/routes/announcements_route.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../modules/auth/presentation/routes/login_route.dart';
@@ -37,6 +40,9 @@ class AppRoutes {
       SupervisorHomeRoute.route,
       CreateProcedureRoute.route,
       CoSignHandoffRoute.route,
+      ProfileRoute.route,
+      NotificationsRoute.route,
+      AnnouncementsRoute.route,
     ],
   );
 }

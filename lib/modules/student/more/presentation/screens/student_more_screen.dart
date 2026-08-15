@@ -4,6 +4,10 @@ import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/modules/auth/presentation/blocs/logout_bloc/logout_bloc.dart';
 import 'package:anestrack_mobile/modules/auth/presentation/routes/login_route.dart';
+import 'package:anestrack_mobile/modules/common/profile/domain/entities/current_user.dart';
+import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
+import 'package:anestrack_mobile/modules/student/complaints/domain/parameters/create_complaint_parameters.dart';
+import 'package:anestrack_mobile/modules/student/complaints/presentation/blocs/complaint_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,8 +19,13 @@ class StudentMoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<LogoutBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<LogoutBloc>()),
+        BlocProvider(
+          create: (_) => sl<CurrentUserBloc>()..add(FetchCurrentUserEvent()),
+        ),
+      ],
       child: BlocConsumer<LogoutBloc, BaseState<bool>>(
         listener: (context, state) {
           if (state.isError) {
@@ -63,37 +72,58 @@ class StudentMoreScreen extends StatelessWidget {
                           children: [
                             const SizedBox(width: 16),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'د. أحمد العمري',
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
-                                      color: AppColors.slate900,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'مقيم سنة ثالثة - تخدير',
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.slate600,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'مستشفى الملك فيصل التخصصي',
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.slate500,
-                                    ),
-                                  ),
-                                ],
+                              child:
+                                  BlocBuilder<CurrentUserBloc,
+                                      BaseState<CurrentUser>>(
+                                builder: (context, userState) {
+                                  final user = userState.data;
+                                  final name = user?.fullName ?? '...';
+                                  final role = user == null
+                                      ? ''
+                                      : (user.isStudent
+                                          ? (user.yearCode != null
+                                              ? 'طالب - السنة ${user.yearCode}'
+                                              : 'طالب')
+                                          : (user.employeePosition ?? 'مشرف'));
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        name,
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 16,
+                                          color: AppColors.slate900,
+                                        ),
+                                      ),
+                                      if (role.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          role,
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.slate600,
+                                          ),
+                                        ),
+                                      ],
+                                      if (user?.mobileNumber.isNotEmpty ==
+                                          true) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          user!.mobileNumber,
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.slate500,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                             Container(
@@ -223,14 +253,14 @@ class StudentMoreScreen extends StatelessWidget {
       label: 'more.profile'.tr(context: context),
       description: 'more.viewandedityourinfo'.tr(context: context),
       colors: const [AppColors.blue100, AppColors.blue600],
-      onTap: () => context.go('/profile'),
+      onTap: () => context.push('/profile'),
     ),
     _MoreMenuItem(
       icon: LucideIcons.bookOpen,
       label: 'more.educationalplan'.tr(context: context),
       description: 'more.requirmentsandskillsrequired'.tr(context: context),
       colors: const [AppColors.studentPrimaryLight, AppColors.studentPrimary],
-      onTap: () => context.go('/curriculum'),
+      onTap: () => context.push('/curriculum'),
     ),
     _MoreMenuItem(
       icon: LucideIcons.alertCircle,
@@ -244,7 +274,7 @@ class StudentMoreScreen extends StatelessWidget {
       label: 'more.settings'.tr(context: context),
       description: 'more.configureyourappsettings'.tr(context: context),
       colors: const [AppColors.gray100, AppColors.slate600Dark],
-      onTap: () => context.go('/settings'),
+      onTap: () => context.push('/settings'),
     ),
     _MoreMenuItem(
       icon: LucideIcons.helpCircle,
@@ -253,7 +283,7 @@ class StudentMoreScreen extends StatelessWidget {
         context: context,
       ),
       colors: const [AppColors.purple100, AppColors.purple600],
-      onTap: () => context.go('/support'),
+      onTap: () => context.push('/support'),
     ),
   ];
 
@@ -262,14 +292,42 @@ class StudentMoreScreen extends StatelessWidget {
     final formKey = GlobalKey<FormState>();
     bool agreed = false;
     bool showAgreementError = false;
+    String? selectedCategory;
+
+    const categories = <String, String>{
+      'تتعلق بالمشرف': 'تتعلق بالمشرف',
+      'تتعلق بالتدريب': 'تتعلق بالتدريب',
+      'بيئة العمل': 'بيئة العمل',
+      'تحرش أو سوء معاملة': 'تحرش أو سوء معاملة',
+      'أخرى': 'أخرى',
+    };
+
+    final bloc = sl<ComplaintBloc>();
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.transparent,
       builder: (sheetContext) {
-        return StatefulBuilder(
+        return BlocProvider.value(
+          value: bloc,
+          child: StatefulBuilder(
           builder: (modalContext, setModalState) {
+            return BlocConsumer<ComplaintBloc, ComplaintState>(
+              listener: (blocContext, complaintState) {
+                if (complaintState.isSuccess) {
+                  Navigator.of(sheetContext).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تم إرسال الشكوى بنجاح')),
+                  );
+                } else if (complaintState.isError) {
+                  ScaffoldMessenger.of(modalContext).showSnackBar(
+                    SnackBar(content: Text(complaintState.errorMessage)),
+                  );
+                }
+              },
+              builder: (blocContext, complaintState) {
+            final isSubmitting = complaintState.isLoading;
             return Container(
               decoration: const BoxDecoration(
                 color: AppColors.white,
@@ -395,30 +453,20 @@ class StudentMoreScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          initialValue: null,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'supervisor',
-                              child: Text('تتعلق بالمشرف'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'training',
-                              child: Text('تتعلق بالتدريب'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'environment',
-                              child: Text('بيئة العمل'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'harassment',
-                              child: Text('تحرش أو سوء معاملة'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'other',
-                              child: Text('أخرى'),
-                            ),
-                          ],
-                          onChanged: (_) {},
+                          initialValue: selectedCategory,
+                          items: categories.keys
+                              .map(
+                                (label) => DropdownMenuItem(
+                                  value: label,
+                                  child: Text(label),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) => setModalState(
+                                  () => selectedCategory = value,
+                                ),
                           validator: (value) =>
                               value == null ? 'اختر نوع الشكوى' : null,
                           decoration: _inputDecoration(
@@ -485,24 +533,29 @@ class StudentMoreScreen extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              final isValid =
-                                  formKey.currentState?.validate() ?? false;
-                              if (!agreed) {
-                                setModalState(() {
-                                  showAgreementError = true;
-                                });
-                                return;
-                              }
-                              if (!isValid) return;
+                            onPressed: isSubmitting
+                                ? null
+                                : () {
+                                    final isValid = formKey.currentState
+                                            ?.validate() ??
+                                        false;
+                                    if (!agreed) {
+                                      setModalState(() {
+                                        showAgreementError = true;
+                                      });
+                                      return;
+                                    }
+                                    if (!isValid) return;
 
-                              Navigator.of(sheetContext).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('تم إرسال الشكوى بنجاح'),
-                                ),
-                              );
-                            },
+                                    blocContext.read<ComplaintBloc>().add(
+                                          SubmitComplaintEvent(
+                                            CreateComplaintParameters(
+                                              title: selectedCategory ?? 'أخرى',
+                                              description: controller.text.trim(),
+                                            ),
+                                          ),
+                                        );
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.red600,
                               foregroundColor: AppColors.white,
@@ -511,10 +564,21 @@ class StudentMoreScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            icon: const Icon(LucideIcons.send, size: 18),
-                            label: const Text(
-                              'إرسال الشكوى',
-                              style: TextStyle(fontWeight: FontWeight.w700),
+                            icon: isSubmitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.white,
+                                    ),
+                                  )
+                                : const Icon(LucideIcons.send, size: 18),
+                            label: Text(
+                              isSubmitting ? 'جارٍ الإرسال...' : 'إرسال الشكوى',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
@@ -544,11 +608,12 @@ class StudentMoreScreen extends StatelessWidget {
                 ),
               ),
             );
-          },
-        );
-      },
+              });
+            }));
+      }
     );
 
+    bloc.close();
     controller.dispose();
   }
 }

@@ -43,4 +43,26 @@ class ApisUrls {
 
   /// Supervisor Students Feature APIs
   String get listStudents => '$_baseApiUrl/functions/listUsers';
+
+  /// Profile / current user
+  String get getCurrentUser => '$_baseApiUrl/functions/getCurrentUser';
+
+  /// Complaints
+  String get createComplaint => '$_baseApiUrl/functions/createComplaint';
+
+  /// Notifications
+  String get listNotifications => '$_baseApiUrl/functions/listNotifications';
+  String get getUnreadCount => '$_baseApiUrl/functions/getUnreadCount';
+  String get markNotificationAsRead => '$_baseApiUrl/functions/markAsRead';
+  String get markAllNotificationsAsRead =>
+      '$_baseApiUrl/functions/markAllAsRead';
+
+  /// Announcements
+  String get listAnnouncements => '$_baseApiUrl/functions/listAnnouncements';
+
+  /// Education — lectures
+  String get listLectures => '$_baseApiUrl/functions/listLectures';
+
+  /// Library — research papers
+  String get listResearchPapers => '$_baseApiUrl/functions/listResearchPapers';
 }
