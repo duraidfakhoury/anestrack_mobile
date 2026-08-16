@@ -66,6 +66,18 @@ import 'package:anestrack_mobile/modules/common/announcements/data/repositories/
 import 'package:anestrack_mobile/modules/common/announcements/domain/repositories/announcement_repository.dart';
 import 'package:anestrack_mobile/modules/common/announcements/domain/usecases/list_announcements_usecase.dart';
 import 'package:anestrack_mobile/modules/common/announcements/presentation/blocs/announcements_bloc.dart';
+import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_data_source.dart';
+import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/education/data/repositories/lecture_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/repositories/lecture_repository.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/usecases/list_lectures_usecase.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lectures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source.dart';
+import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/library/data/repositories/research_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/repositories/research_repository.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/usecases/list_research_papers_usecase.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -118,6 +130,16 @@ class ServicesLocator {
       () => AnnouncementDataSourceImpl(),
     );
 
+    // Education (lectures) Data Source
+    sl.registerLazySingleton<LectureDataSource>(
+      () => LectureDataSourceImpl(),
+    );
+
+    // Library (research) Data Source
+    sl.registerLazySingleton<ResearchDataSource>(
+      () => ResearchDataSourceImpl(),
+    );
+
     // Repositories
     sl.registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(sl<AuthDataSource>()),
@@ -148,6 +170,12 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<AnnouncementRepository>(
       () => AnnouncementRepositoryImpl(sl<AnnouncementDataSource>()),
+    );
+    sl.registerLazySingleton<LectureRepository>(
+      () => LectureRepositoryImpl(sl<LectureDataSource>()),
+    );
+    sl.registerLazySingleton<ResearchRepository>(
+      () => ResearchRepositoryImpl(sl<ResearchDataSource>()),
     );
 
     // Use Cases
@@ -201,6 +229,12 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<ListAnnouncementsUseCase>(
       () => ListAnnouncementsUseCase(sl<AnnouncementRepository>()),
+    );
+    sl.registerLazySingleton<ListLecturesUseCase>(
+      () => ListLecturesUseCase(sl<LectureRepository>()),
+    );
+    sl.registerLazySingleton<ListResearchPapersUseCase>(
+      () => ListResearchPapersUseCase(sl<ResearchRepository>()),
     );
 
     // Blocs
@@ -275,6 +309,16 @@ class ServicesLocator {
     // Announcements
     sl.registerFactory<AnnouncementsBloc>(
       () => AnnouncementsBloc(sl<ListAnnouncementsUseCase>()),
+    );
+
+    // Education (lectures)
+    sl.registerFactory<LecturesBloc>(
+      () => LecturesBloc(sl<ListLecturesUseCase>()),
+    );
+
+    // Library (research)
+    sl.registerFactory<ResearchBloc>(
+      () => ResearchBloc(sl<ListResearchPapersUseCase>()),
     );
   }
 }

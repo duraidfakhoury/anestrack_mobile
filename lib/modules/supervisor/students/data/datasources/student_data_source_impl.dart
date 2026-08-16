@@ -23,9 +23,11 @@ class StudentDataSourceImpl extends StudentDataSource {
   ) async {
     try {
       _logger.i("Fetching students: ${parameters.toJson()}");
+      // `listStudents` is already scoped to Students server-side (assertSupervisor),
+      // so no userType filter is needed here.
       final response = await NetworkHelper().get(
         ApisUrls().listStudents,
-        data: {...parameters.toJson(), 'userType': 'student'},
+        data: parameters.toJson(),
       );
 
       final unwrapped = _unwrap(response.data);

@@ -1,0 +1,7 @@
+import 'package:dartz/dartz.dart';
+import 'package:anestrack_mobile/core/network/exeptions/failure.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/entities/lecture.dart';
+
+abstract class LectureRepository {
+  Future<Either<Failure, List<Lecture>>> listLectures();
+}

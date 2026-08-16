@@ -11,6 +11,9 @@ import 'package:anestrack_mobile/modules/common/notifications/presentation/route
 import 'package:anestrack_mobile/modules/common/announcements/presentation/routes/announcements_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/co_sign_scan_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/ble_debug_supervisor_route.dart';
+import 'package:anestrack_mobile/modules/common/settings/presentation/routes/settings_route.dart';
+import 'package:anestrack_mobile/modules/common/support/presentation/routes/support_route.dart';
+import 'package:anestrack_mobile/modules/student/curriculum/presentation/routes/curriculum_route.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../modules/auth/presentation/routes/login_route.dart';
@@ -49,6 +52,9 @@ class AppRoutes {
       CoSignScanRoute.route,
       BleDebugStudentRoute.route,
       BleDebugSupervisorRoute.route,
+      SettingsRoute.route,
+      SupportRoute.route,
+      CurriculumRoute.route,
     ],
   );
 }

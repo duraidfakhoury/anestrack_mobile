@@ -42,7 +42,10 @@ class ApisUrls {
       '$_baseApiUrl/functions/listPendingForSupervisor';
 
   /// Supervisor Students Feature APIs
-  String get listStudents => '$_baseApiUrl/functions/listUsers';
+  /// Uses the supervisor-scoped `listStudents` (auth: any Supervisor) rather
+  /// than `listUsers` (admin-only), with server-side search/year/hospital
+  /// filters.
+  String get listStudents => '$_baseApiUrl/functions/listStudents';
 
   /// Profile / current user
   String get getCurrentUser => '$_baseApiUrl/functions/getCurrentUser';

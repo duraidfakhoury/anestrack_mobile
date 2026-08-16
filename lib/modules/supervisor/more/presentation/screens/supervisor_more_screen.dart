@@ -4,6 +4,8 @@ import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/modules/auth/presentation/blocs/logout_bloc/logout_bloc.dart';
 import 'package:anestrack_mobile/modules/auth/presentation/routes/login_route.dart';
+import 'package:anestrack_mobile/modules/common/profile/domain/entities/current_user.dart';
+import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,8 +25,13 @@ class _SupervisorMoreScreenState extends State<SupervisorMoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<LogoutBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<LogoutBloc>()),
+        BlocProvider(
+          create: (_) => sl<CurrentUserBloc>()..add(FetchCurrentUserEvent()),
+        ),
+      ],
       child: BlocConsumer<LogoutBloc, BaseState<bool>>(
         listener: (context, state) {
           if (state.isError) {
@@ -126,35 +133,49 @@ class _SupervisorMoreScreenState extends State<SupervisorMoreScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: AppColors.slate200),
                               ),
-                              child: Column(
-                                children: [
-                                  _buildAccountRow(
-                                    'supervisor_more.name_label'
-                                        .tr(context: context),
-                                    'supervisor_more.name_value'
-                                        .tr(context: context),
-                                  ),
-                                  const Divider(
-                                    height: 24,
-                                    color: AppColors.slate100,
-                                  ),
-                                  _buildAccountRow(
-                                    'supervisor_more.email_label'
-                                        .tr(context: context),
-                                    'supervisor_more.email_value'
-                                        .tr(context: context),
-                                  ),
-                                  const Divider(
-                                    height: 24,
-                                    color: AppColors.slate100,
-                                  ),
-                                  _buildAccountRow(
-                                    'supervisor_more.role_label'
-                                        .tr(context: context),
-                                    'supervisor_more.role_value'
-                                        .tr(context: context),
-                                  ),
-                                ],
+                              child: BlocBuilder<CurrentUserBloc,
+                                  BaseState<CurrentUser>>(
+                                builder: (context, userState) {
+                                  final user = userState.data;
+                                  const dash = '—';
+                                  return Column(
+                                    children: [
+                                      _buildAccountRow(
+                                        'supervisor_more.name_label'
+                                            .tr(context: context),
+                                        user?.fullName ?? dash,
+                                      ),
+                                      const Divider(
+                                        height: 24,
+                                        color: AppColors.slate100,
+                                      ),
+                                      _buildAccountRow(
+                                        'supervisor_more.email_label'
+                                            .tr(context: context),
+                                        (user?.employeeEmail?.isNotEmpty == true)
+                                            ? user!.employeeEmail!
+                                            : dash,
+                                      ),
+                                      const Divider(
+                                        height: 24,
+                                        color: AppColors.slate100,
+                                      ),
+                                      _buildAccountRow(
+                                        'supervisor_more.role_label'
+                                            .tr(context: context),
+                                        user == null
+                                            ? dash
+                                            : (user.employeePosition
+                                                        ?.isNotEmpty ==
+                                                    true
+                                                ? user.employeePosition!
+                                                : (user.isSuperAdmin
+                                                    ? 'مدير'
+                                                    : 'مشرف')),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                           ],

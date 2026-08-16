@@ -1,5 +1,6 @@
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
+import 'package:anestrack_mobile/core/utils/relative_time.dart';
 import 'package:anestrack_mobile/modules/common/announcements/domain/entities/announcement.dart';
 import 'package:anestrack_mobile/modules/common/announcements/presentation/blocs/announcements_bloc.dart';
 import 'package:anestrack_mobile/modules/common/announcements/presentation/routes/announcements_route.dart';

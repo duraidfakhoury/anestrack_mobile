@@ -12,15 +12,19 @@ class StudentModel extends Student {
     required super.isBlocked,
   });
 
+  /// Tolerates both the admin `listUsers`/`User.map` shape
+  /// (`objectId`, `FirstName`, `MobileNumber`, ...) and the supervisor-scoped
+  /// `listStudents` directory shape (`id`, `firstName`, no PII fields).
   factory StudentModel.fromJson(Map<String, dynamic> json) {
     return StudentModel(
-      objectId: json["objectId"] as String? ?? "",
+      objectId: (json["id"] ?? json["objectId"]) as String? ?? "",
       username: json["username"] as String? ?? "",
-      firstName: json["FirstName"] as String? ?? "",
-      lastName: json["LastName"] as String? ?? "",
+      firstName: (json["firstName"] ?? json["FirstName"]) as String? ?? "",
+      lastName: (json["lastName"] ?? json["LastName"]) as String? ?? "",
       nationalId: json["nationalId"] as String? ?? "",
-      mobileNumber: json["MobileNumber"] as String? ?? "",
-      yearCode: json["yearCode"] as int? ?? 0,
+      mobileNumber:
+          (json["mobileNumber"] ?? json["MobileNumber"]) as String? ?? "",
+      yearCode: (json["yearCode"] as num?)?.toInt() ?? 0,
       isBlocked: json["isBlocked"] as bool? ?? false,
     );
   }
