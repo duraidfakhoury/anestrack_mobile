@@ -6,8 +6,8 @@ import 'package:anestrack_mobile/modules/auth/presentation/blocs/logout_bloc/log
 import 'package:anestrack_mobile/modules/auth/presentation/routes/login_route.dart';
 import 'package:anestrack_mobile/modules/common/profile/domain/entities/current_user.dart';
 import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
-import 'package:anestrack_mobile/modules/student/complaints/domain/parameters/create_complaint_parameters.dart';
 import 'package:anestrack_mobile/modules/student/complaints/presentation/blocs/complaint_bloc.dart';
+import 'package:anestrack_mobile/modules/student/more/presentation/sheets/complaint_bottom_sheet_content.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -73,58 +73,61 @@ class StudentMoreScreen extends StatelessWidget {
                             const SizedBox(width: 16),
                             Expanded(
                               child:
-                                  BlocBuilder<CurrentUserBloc,
-                                      BaseState<CurrentUser>>(
-                                builder: (context, userState) {
-                                  final user = userState.data;
-                                  final name = user?.fullName ?? '...';
-                                  final role = user == null
-                                      ? ''
-                                      : (user.isStudent
-                                          ? (user.yearCode != null
-                                              ? 'طالب - السنة ${user.yearCode}'
-                                              : 'طالب')
-                                          : (user.employeePosition ?? 'مشرف'));
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        name,
-                                        textAlign: TextAlign.right,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16,
-                                          color: AppColors.slate900,
-                                        ),
-                                      ),
-                                      if (role.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          role,
-                                          textAlign: TextAlign.right,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.slate600,
+                                  BlocBuilder<
+                                    CurrentUserBloc,
+                                    BaseState<CurrentUser>
+                                  >(
+                                    builder: (context, userState) {
+                                      final user = userState.data;
+                                      final name = user?.fullName ?? '...';
+                                      final role = user == null
+                                          ? ''
+                                          : (user.isStudent
+                                                ? (user.yearCode != null
+                                                      ? 'طالب - السنة ${user.yearCode}'
+                                                      : 'طالب')
+                                                : (user.employeePosition ??
+                                                      'مشرف'));
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            name,
+                                            textAlign: TextAlign.right,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 16,
+                                              color: AppColors.slate900,
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                      if (user?.mobileNumber.isNotEmpty ==
-                                          true) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          user!.mobileNumber,
-                                          textAlign: TextAlign.right,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: AppColors.slate500,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  );
-                                },
-                              ),
+                                          if (role.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              role,
+                                              textAlign: TextAlign.right,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.slate600,
+                                              ),
+                                            ),
+                                          ],
+                                          if (user?.mobileNumber.isNotEmpty ==
+                                              true) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              user!.mobileNumber,
+                                              textAlign: TextAlign.right,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.slate500,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      );
+                                    },
+                                  ),
                             ),
                             Container(
                               width: 64,
@@ -172,9 +175,9 @@ class StudentMoreScreen extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: isLoading
                               ? null
-                              : () => context
-                                  .read<LogoutBloc>()
-                                  .add(const LogoutRequestedEvent()),
+                              : () => context.read<LogoutBloc>().add(
+                                  const LogoutRequestedEvent(),
+                                ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.red100,
                             foregroundColor: AppColors.red600,
@@ -197,10 +200,7 @@ class StudentMoreScreen extends StatelessWidget {
                               : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(
-                                      LucideIcons.logOut,
-                                      size: 18,
-                                    ),
+                                    const Icon(LucideIcons.logOut, size: 18),
                                     const SizedBox(width: 8),
                                     Text(
                                       'logout'.tr(context: context),
@@ -288,20 +288,6 @@ class StudentMoreScreen extends StatelessWidget {
   ];
 
   Future<void> _showComplaintSheet(BuildContext context) async {
-    final controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool agreed = false;
-    bool showAgreementError = false;
-    String? selectedCategory;
-
-    const categories = <String, String>{
-      'تتعلق بالمشرف': 'تتعلق بالمشرف',
-      'تتعلق بالتدريب': 'تتعلق بالتدريب',
-      'بيئة العمل': 'بيئة العمل',
-      'تحرش أو سوء معاملة': 'تحرش أو سوء معاملة',
-      'أخرى': 'أخرى',
-    };
-
     final bloc = sl<ComplaintBloc>();
 
     await showModalBottomSheet<void>(
@@ -311,310 +297,10 @@ class StudentMoreScreen extends StatelessWidget {
       builder: (sheetContext) {
         return BlocProvider.value(
           value: bloc,
-          child: StatefulBuilder(
-          builder: (modalContext, setModalState) {
-            return BlocConsumer<ComplaintBloc, ComplaintState>(
-              listener: (blocContext, complaintState) {
-                if (complaintState.isSuccess) {
-                  Navigator.of(sheetContext).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('تم إرسال الشكوى بنجاح')),
-                  );
-                } else if (complaintState.isError) {
-                  ScaffoldMessenger.of(modalContext).showSnackBar(
-                    SnackBar(content: Text(complaintState.errorMessage)),
-                  );
-                }
-              },
-              builder: (blocContext, complaintState) {
-            final isSubmitting = complaintState.isLoading;
-            return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 16,
-                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 24,
-              ),
-              child: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 48,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppColors.gray300,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.red100,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                LucideIcons.lock,
-                                color: AppColors.red600,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'تقديم شكوى سرية',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.slate900,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'سيتم إرسالها مباشرة للإدارة',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.slate600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.amber50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.amber200),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Icon(
-                                LucideIcons.alertCircle,
-                                color: AppColors.amber600,
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'معلومات سرية ومحمية',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.amber800,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'هذه الشكوى سرية بالكامل وسيتم إرسالها مباشرة إلى مدير البرنامج. لن يتم مشاركة هويتك إلا إذا كان ذلك ضرورياً.',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.amber700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'موضوع الشكوى *',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.slate700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          initialValue: selectedCategory,
-                          items: categories.keys
-                              .map(
-                                (label) => DropdownMenuItem(
-                                  value: label,
-                                  child: Text(label),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: isSubmitting
-                              ? null
-                              : (value) => setModalState(
-                                  () => selectedCategory = value,
-                                ),
-                          validator: (value) =>
-                              value == null ? 'اختر نوع الشكوى' : null,
-                          decoration: _inputDecoration(
-                            hintText: 'اختر نوع الشكوى',
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'تفاصيل الشكوى *',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.slate700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: controller,
-                          maxLines: 6,
-                          decoration: _inputDecoration(
-                            hintText: 'اكتب تفاصيل الشكوى هنا...',
-                          ),
-                          validator: (value) =>
-                              value == null || value.trim().isEmpty
-                              ? 'اكتب تفاصيل الشكوى'
-                              : null,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Checkbox(
-                              value: agreed,
-                              onChanged: (value) => setModalState(() {
-                                agreed = value ?? false;
-                                if (agreed) {
-                                  showAgreementError = false;
-                                }
-                              }),
-                            ),
-                            const Expanded(
-                              child: Text(
-                                'أوافق على إرسال هذه الشكوى وأفهم أنها سرية ومحمية',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.slate600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (showAgreementError)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 12, bottom: 8),
-                            child: Text(
-                              'يرجى الموافقة على الإقرار',
-                              style: TextStyle(
-                                color: AppColors.red600,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: isSubmitting
-                                ? null
-                                : () {
-                                    final isValid = formKey.currentState
-                                            ?.validate() ??
-                                        false;
-                                    if (!agreed) {
-                                      setModalState(() {
-                                        showAgreementError = true;
-                                      });
-                                      return;
-                                    }
-                                    if (!isValid) return;
-
-                                    blocContext.read<ComplaintBloc>().add(
-                                          SubmitComplaintEvent(
-                                            CreateComplaintParameters(
-                                              title: selectedCategory ?? 'أخرى',
-                                              description: controller.text.trim(),
-                                            ),
-                                          ),
-                                        );
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.red600,
-                              foregroundColor: AppColors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            icon: isSubmitting
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.white,
-                                    ),
-                                  )
-                                : const Icon(LucideIcons.send, size: 18),
-                            label: Text(
-                              isSubmitting ? 'جارٍ الإرسال...' : 'إرسال الشكوى',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(sheetContext).pop(),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.slate700,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              side: const BorderSide(color: AppColors.gray200),
-                              backgroundColor: AppColors.gray100,
-                            ),
-                            child: const Text(
-                              'إلغاء',
-                              style: TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-              });
-            }));
-      }
+          child: const ComplaintBottomSheetContent(),
+        );
+      },
     );
-
-    bloc.close();
-    controller.dispose();
   }
 }
 
@@ -783,24 +469,4 @@ class _MoreMenuItem {
   final VoidCallback onTap;
 }
 
-InputDecoration _inputDecoration({required String hintText}) {
-  return InputDecoration(
-    hintText: hintText,
-    hintStyle: const TextStyle(color: AppColors.slate500, fontSize: 12),
-    filled: true,
-    fillColor: AppColors.white,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.gray200),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.gray200),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.studentPrimary, width: 1.5),
-    ),
-  );
-}
+
