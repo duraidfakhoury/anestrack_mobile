@@ -22,3 +22,20 @@ class FilterProceduresByStatusEvent extends ProceduresEvent {
   @override
   List<Object?> get props => [status];
 }
+
+/// Re-fetches page 1 with whatever filter is currently active, e.g. after
+/// pull-to-refresh or after a new procedure was submitted elsewhere.
+class RefreshProceduresEvent extends ProceduresEvent {
+  const RefreshProceduresEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
+/// Fetches the next page and appends it to the currently loaded list.
+class LoadMoreProceduresEvent extends ProceduresEvent {
+  const LoadMoreProceduresEvent();
+
+  @override
+  List<Object?> get props => [];
+}

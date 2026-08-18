@@ -11,9 +11,12 @@ class NotificationRepositoryImpl extends NotificationRepository {
   NotificationRepositoryImpl(this.dataSource);
 
   @override
-  Future<Either<Failure, List<AppNotification>>> listNotifications() {
+  Future<Either<Failure, List<AppNotification>>> listNotifications({
+    int? limit,
+    int? skip,
+  }) {
     return AppErrorsHandler().defaultHandleEither(
-      () => dataSource.listNotifications(),
+      () => dataSource.listNotifications(limit: limit, skip: skip),
     );
   }
 

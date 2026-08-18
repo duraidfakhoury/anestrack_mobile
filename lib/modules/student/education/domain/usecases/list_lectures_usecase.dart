@@ -8,5 +8,6 @@ class ListLecturesUseCase {
 
   ListLecturesUseCase(this.repository);
 
-  Future<Either<Failure, List<Lecture>>> call() => repository.listLectures();
+  Future<Either<Failure, List<Lecture>>> call({int? limit, int? skip}) =>
+      repository.listLectures(limit: limit, skip: skip);
 }

@@ -108,6 +108,7 @@ class HospitalProcedureTypeDataSourceImpl
       final response = await NetworkHelper().get(ApisUrls().listSupervisors);
 
       _logger.i("Supervisors API Response Status: ${response.statusCode}");
+      _logger.i("Supervisors API Response data: ${response.data}");
 
       List<dynamic>? rawList;
       if (response.data is List) {

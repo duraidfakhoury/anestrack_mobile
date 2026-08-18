@@ -17,10 +17,19 @@ class NotificationDataSourceImpl extends NotificationDataSource {
   }
 
   @override
-  Future<List<AppNotificationModel>> listNotifications() async {
+  Future<List<AppNotificationModel>> listNotifications({
+    int? limit,
+    int? skip,
+  }) async {
     try {
       _logger.i('Fetching notifications');
-      final response = await NetworkHelper().get(ApisUrls().listNotifications);
+      final response = await NetworkHelper().get(
+        ApisUrls().listNotifications,
+        data: {
+          if (limit != null) 'limit': limit,
+          if (skip != null) 'skip': skip,
+        },
+      );
       final body = _unwrap(response.data);
       if (body is List) {
         return body

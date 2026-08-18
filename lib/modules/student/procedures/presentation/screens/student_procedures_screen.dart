@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:anestrack_mobile/core/services/cache_service.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
@@ -19,6 +20,7 @@ class StudentProceduresScreen extends StatefulWidget {
 
 class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
   late ProceduresBloc _proceduresBloc;
+  final ScrollController _scrollController = ScrollController();
   String _filterStatus = 'all';
 
   final List<Map<String, String>> _filters = const [
@@ -32,13 +34,33 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
   void initState() {
     super.initState();
     _proceduresBloc = sl<ProceduresBloc>();
-    _proceduresBloc.add(FetchProceduresEvent(const ListProceduresParameters()));
+    _proceduresBloc.add(
+      FetchProceduresEvent(
+        ListProceduresParameters(studentId: CacheService().userId),
+      ),
+    );
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _proceduresBloc.close();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    // _proceduresBloc is a singleton owned by the service locator, so other
+    // flows (e.g. create-procedure) can refresh it after this screen is gone.
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _proceduresBloc.add(const LoadMoreProceduresEvent());
+    }
+  }
+
+  Future<void> _onRefresh() {
+    _proceduresBloc.add(const RefreshProceduresEvent());
+    return _proceduresBloc.stream.firstWhere((state) => !state.isLoading);
   }
 
   @override
@@ -183,9 +205,8 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => _proceduresBloc.add(
-                FetchProceduresEvent(const ListProceduresParameters()),
-              ),
+              onPressed: () =>
+                  _proceduresBloc.add(const RefreshProceduresEvent()),
               child: const Text("إعادة المحاولة"),
             ),
           ],
@@ -194,12 +215,40 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
     }
 
     final procedures = state.data ?? [];
-    if (procedures.isEmpty) return _buildEmptyState();
+    if (procedures.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [_buildEmptyState()],
+        ),
+      );
+    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      itemCount: procedures.length,
-      itemBuilder: (context, idx) => _ProcedureCard(procedure: procedures[idx]),
+    final showLoadingMore = _proceduresBloc.hasMore;
+
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        itemCount: procedures.length + (showLoadingMore ? 1 : 0),
+        itemBuilder: (context, idx) {
+          if (idx >= procedures.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+          return _ProcedureCard(procedure: procedures[idx]);
+        },
+      ),
     );
   }
 

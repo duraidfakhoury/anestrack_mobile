@@ -11,9 +11,12 @@ class AnnouncementRepositoryImpl extends AnnouncementRepository {
   AnnouncementRepositoryImpl(this.dataSource);
 
   @override
-  Future<Either<Failure, List<Announcement>>> listAnnouncements() {
+  Future<Either<Failure, List<Announcement>>> listAnnouncements({
+    int? limit,
+    int? skip,
+  }) {
     return AppErrorsHandler().defaultHandleEither(
-      () => dataSource.listAnnouncements(),
+      () => dataSource.listAnnouncements(limit: limit, skip: skip),
     );
   }
 }

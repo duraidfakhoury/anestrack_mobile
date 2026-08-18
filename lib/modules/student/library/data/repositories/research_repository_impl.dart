@@ -11,9 +11,12 @@ class ResearchRepositoryImpl extends ResearchRepository {
   ResearchRepositoryImpl(this.dataSource);
 
   @override
-  Future<Either<Failure, List<ResearchPaper>>> listResearchPapers() {
+  Future<Either<Failure, List<ResearchPaper>>> listResearchPapers({
+    int? limit,
+    int? skip,
+  }) {
     return AppErrorsHandler().defaultHandleEither(
-      () => dataSource.listResearchPapers(),
+      () => dataSource.listResearchPapers(limit: limit, skip: skip),
     );
   }
 }

@@ -15,10 +15,16 @@ class LectureDataSourceImpl extends LectureDataSource {
   }
 
   @override
-  Future<List<LectureModel>> listLectures() async {
+  Future<List<LectureModel>> listLectures({int? limit, int? skip}) async {
     try {
       _logger.i('Fetching lectures');
-      final response = await NetworkHelper().get(ApisUrls().listLectures);
+      final response = await NetworkHelper().get(
+        ApisUrls().listLectures,
+        data: {
+          if (limit != null) 'limit': limit,
+          if (skip != null) 'skip': skip,
+        },
+      );
       final body = _unwrap(response.data);
       if (body is List) {
         return body

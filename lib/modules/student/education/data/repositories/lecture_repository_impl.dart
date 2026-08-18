@@ -11,9 +11,12 @@ class LectureRepositoryImpl extends LectureRepository {
   LectureRepositoryImpl(this.dataSource);
 
   @override
-  Future<Either<Failure, List<Lecture>>> listLectures() {
+  Future<Either<Failure, List<Lecture>>> listLectures({
+    int? limit,
+    int? skip,
+  }) {
     return AppErrorsHandler().defaultHandleEither(
-      () => dataSource.listLectures(),
+      () => dataSource.listLectures(limit: limit, skip: skip),
     );
   }
 }

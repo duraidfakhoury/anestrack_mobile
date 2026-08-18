@@ -7,8 +7,10 @@ class ListNotificationsUseCase {
   final NotificationRepository repository;
   ListNotificationsUseCase(this.repository);
 
-  Future<Either<Failure, List<AppNotification>>> call() =>
-      repository.listNotifications();
+  Future<Either<Failure, List<AppNotification>>> call({
+    int? limit,
+    int? skip,
+  }) => repository.listNotifications(limit: limit, skip: skip);
 }
 
 class GetUnreadCountUseCase {

@@ -16,6 +16,8 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/cr
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_state.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_event.dart';
 import 'package:intl/intl.dart';
 
 const _teal = Color(0xFF0D9488);
@@ -99,29 +101,29 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     }
   }
 
-Future<void> _pickPhoto() async {
-  final picker = ImagePicker();
-  final XFile? file = await picker.pickImage(
-    source: ImageSource.camera,
-    maxWidth: 800,       // Dropped slightly to guarantee smaller payload
-    maxHeight: 800,
-    imageQuality: 60,    // 60% quality is plenty for medical log photos
-  );
-  if (file == null) return;
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final XFile? file = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 800, // Dropped slightly to guarantee smaller payload
+      maxHeight: 800,
+      imageQuality: 60, // 60% quality is plenty for medical log photos
+    );
+    if (file == null) return;
 
-  final bytes = await file.readAsBytes();
-  
-  // 1. Convert to raw base64
-  String rawBase64 = base64Encode(bytes);
+    final bytes = await file.readAsBytes();
 
-  // 2. STRIP ALL NEWLINES (\r and \n) AND SPACES
-  String cleanBase64 = rawBase64.replaceAll(RegExp(r'[\r\n\s]'), '');
+    // 1. Convert to raw base64
+    String rawBase64 = base64Encode(bytes);
 
-  setState(() {
-    _photoBase64 = 'data:image/jpeg;base64,$cleanBase64';
-    _photoPath = file.path;
-  });
-}
+    // 2. STRIP ALL NEWLINES (\r and \n) AND SPACES
+    String cleanBase64 = rawBase64.replaceAll(RegExp(r'[\r\n\s]'), '');
+
+    setState(() {
+      _photoBase64 = 'data:image/jpeg;base64,$cleanBase64';
+      _photoPath = file.path;
+    });
+  }
 
   void _removePhoto() {
     setState(() {
@@ -158,6 +160,10 @@ Future<void> _pickPhoto() async {
   }
 
   void _onCreated(CreateProcedureResult result) {
+    // The procedure already exists server-side at this point (even for the
+    // live co-sign flow), so refresh the list the student will land back on.
+    sl<ProceduresBloc>().add(const RefreshProceduresEvent());
+
     if (result.requiresLiveCoSign) {
       // Flow 1: hand the co-sign code to the supervisor.
       context.push(CoSignHandoffRoute.name, extra: result);

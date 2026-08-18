@@ -17,6 +17,7 @@ class SupervisorStudentsScreen extends StatefulWidget {
 
 class _SupervisorStudentsScreenState extends State<SupervisorStudentsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   late final StudentsBloc _studentsBloc;
   String _query = '';
 
@@ -27,16 +28,31 @@ class _SupervisorStudentsScreenState extends State<SupervisorStudentsScreen> {
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.trim());
     });
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _studentsBloc.close();
     super.dispose();
   }
 
-  void _refresh() => _studentsBloc.add(FetchStudentsEvent());
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _studentsBloc.add(LoadMoreStudentsEvent());
+    }
+  }
+
+  void _refresh() => _studentsBloc.add(RefreshStudentsEvent());
+
+  Future<void> _onRefresh() {
+    _refresh();
+    return _studentsBloc.stream.firstWhere((state) => !state.isLoading);
+  }
 
   List<Student> _filteredStudents(List<Student> students) {
     if (_query.isEmpty) return students;
@@ -77,17 +93,41 @@ class _SupervisorStudentsScreenState extends State<SupervisorStudentsScreen> {
                   );
                 }
                 final students = _filteredStudents(state.data ?? []);
-                if (students.isEmpty) return _buildEmptyState(context);
+                if (students.isEmpty) {
+                  return RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [_buildEmptyState(context)],
+                    ),
+                  );
+                }
+                final showLoadingMore =
+                    _query.isEmpty && _studentsBloc.hasMore;
                 return RefreshIndicator(
-                  onRefresh: () async => _refresh(),
+                  onRefresh: _onRefresh,
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
                     ),
-                    itemCount: students.length,
-                    itemBuilder: (context, index) =>
-                        _StudentCard(student: students[index]),
+                    itemCount: students.length + (showLoadingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= students.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+                      return _StudentCard(student: students[index]);
+                    },
                   ),
                 );
               },

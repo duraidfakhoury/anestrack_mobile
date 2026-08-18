@@ -15,11 +15,19 @@ class ResearchDataSourceImpl extends ResearchDataSource {
   }
 
   @override
-  Future<List<ResearchPaperModel>> listResearchPapers() async {
+  Future<List<ResearchPaperModel>> listResearchPapers({
+    int? limit,
+    int? skip,
+  }) async {
     try {
       _logger.i('Fetching research papers');
-      final response =
-          await NetworkHelper().get(ApisUrls().listResearchPapers);
+      final response = await NetworkHelper().get(
+        ApisUrls().listResearchPapers,
+        data: {
+          if (limit != null) 'limit': limit,
+          if (skip != null) 'skip': skip,
+        },
+      );
       final body = _unwrap(response.data);
       if (body is List) {
         return body

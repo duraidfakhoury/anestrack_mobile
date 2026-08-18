@@ -9,66 +9,123 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class AnnouncementsScreen extends StatelessWidget {
+class AnnouncementsScreen extends StatefulWidget {
   const AnnouncementsScreen({super.key});
 
   @override
+  State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
+}
+
+class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
+  late final AnnouncementsBloc _announcementsBloc;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _announcementsBloc = sl<AnnouncementsBloc>()
+      ..add(FetchAnnouncementsEvent());
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _announcementsBloc.close();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _announcementsBloc.add(LoadMoreAnnouncementsEvent());
+    }
+  }
+
+  Future<void> _onRefresh() {
+    _announcementsBloc.add(RefreshAnnouncementsEvent());
+    return _announcementsBloc.stream.firstWhere((state) => !state.isLoading);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<AnnouncementsBloc>()..add(FetchAnnouncementsEvent()),
-      child: Scaffold(
-        backgroundColor: AppColors.slate50,
-        appBar: AppBar(
-          backgroundColor: AppColors.studentPrimary,
-          foregroundColor: AppColors.white,
-          title: const Text('الإعلانات'),
-          leading: IconButton(
-            icon: const Icon(LucideIcons.arrowRight),
-            onPressed: () => context.pop(),
-          ),
+    return Scaffold(
+      backgroundColor: AppColors.slate50,
+      appBar: AppBar(
+        backgroundColor: AppColors.studentPrimary,
+        foregroundColor: AppColors.white,
+        title: const Text('الإعلانات'),
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowRight),
+          onPressed: () => context.pop(),
         ),
-        body: BlocBuilder<AnnouncementsBloc, BaseState<List<Announcement>>>(
-          builder: (context, state) {
-            if (state.isLoading || state.isInit) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state.isError) {
-              return _ErrorView(
-                message: state.errorMessage,
-                onRetry: () => context
-                    .read<AnnouncementsBloc>()
-                    .add(FetchAnnouncementsEvent()),
-              );
-            }
-            final items = state.data ?? const [];
-            if (items.isEmpty) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.megaphone, size: 44, color: AppColors.slate400),
-                      SizedBox(height: 12),
-                      Text('لا توجد إعلانات'),
-                    ],
-                  ),
-                ),
-              );
-            }
+      ),
+      body: BlocBuilder<AnnouncementsBloc, BaseState<List<Announcement>>>(
+        bloc: _announcementsBloc,
+        builder: (context, state) {
+          if (state.isLoading || state.isInit) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state.isError) {
+            return _ErrorView(
+              message: state.errorMessage,
+              onRetry: () =>
+                  _announcementsBloc.add(FetchAnnouncementsEvent()),
+            );
+          }
+          final items = state.data ?? const [];
+          if (items.isEmpty) {
             return RefreshIndicator(
-              onRefresh: () async => context
-                  .read<AnnouncementsBloc>()
-                  .add(FetchAnnouncementsEvent()),
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, i) => AnnouncementCard(item: items[i]),
+              onRefresh: _onRefresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.megaphone,
+                          size: 44,
+                          color: AppColors.slate400,
+                        ),
+                        SizedBox(height: 12),
+                        Text('لا توجد إعلانات'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
-          },
-        ),
+          }
+          final showLoadingMore = _announcementsBloc.hasMore;
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView.separated(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length + (showLoadingMore ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, i) {
+                if (i >= items.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
+                return AnnouncementCard(item: items[i]);
+              },
+            ),
+          );
+        },
       ),
     );
   }

@@ -243,7 +243,10 @@ class ServicesLocator {
     sl.registerFactory<LogoutBloc>(
       () => LogoutBloc(sl<AuthRepository>(), sl<SupervisorCodeBleScanner>()),
     );
-    sl.registerFactory<ProceduresBloc>(
+    // Singleton: the student procedures list stays alive inside the home
+    // IndexedStack, so other flows (e.g. create-procedure) can reach the
+    // same instance via `sl<ProceduresBloc>()` to trigger a refresh.
+    sl.registerLazySingleton<ProceduresBloc>(
       () => ProceduresBloc(sl<ListProceduresUseCase>()),
     );
     sl.registerFactory<CreateProcedureBloc>(
@@ -302,7 +305,9 @@ class ServicesLocator {
         sl<MarkAllNotificationsReadUseCase>(),
       ),
     );
-    sl.registerFactory<UnreadCountBloc>(
+    // Singleton: the home-screen bell badge and the notifications screen's
+    // mark-as-read actions need to reach the same instance to stay in sync.
+    sl.registerLazySingleton<UnreadCountBloc>(
       () => UnreadCountBloc(sl<GetUnreadCountUseCase>()),
     );
 

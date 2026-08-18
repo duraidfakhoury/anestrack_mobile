@@ -3,87 +3,145 @@ import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/modules/common/notifications/domain/entities/app_notification.dart';
 import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs/notifications_bloc.dart';
+import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs/unread_count_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  late final NotificationsBloc _notificationsBloc;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationsBloc = sl<NotificationsBloc>()
+      ..add(FetchNotificationsEvent());
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _notificationsBloc.close();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _notificationsBloc.add(LoadMoreNotificationsEvent());
+    }
+  }
+
+  Future<void> _onRefresh() {
+    _notificationsBloc.add(RefreshNotificationsEvent());
+    return _notificationsBloc.stream.firstWhere((state) => !state.isLoading);
+  }
+
+  void _markOne(String id) {
+    _notificationsBloc.add(MarkNotificationReadEvent(id));
+    sl<UnreadCountBloc>().add(FetchUnreadCountEvent());
+  }
+
+  void _markAll() {
+    _notificationsBloc.add(MarkAllNotificationsReadEvent());
+    sl<UnreadCountBloc>().add(FetchUnreadCountEvent());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<NotificationsBloc>()..add(FetchNotificationsEvent()),
-      child: Scaffold(
-        backgroundColor: AppColors.slate50,
-        appBar: AppBar(
-          backgroundColor: AppColors.studentPrimary,
-          foregroundColor: AppColors.white,
-          title: const Text('الإشعارات'),
-          leading: IconButton(
-            icon: const Icon(LucideIcons.arrowRight),
-            onPressed: () => context.pop(),
-          ),
-          actions: [
-            Builder(
-              builder: (context) => TextButton(
-                onPressed: () => context
-                    .read<NotificationsBloc>()
-                    .add(MarkAllNotificationsReadEvent()),
-                child: const Text(
-                  'تعليم الكل كمقروء',
-                  style: TextStyle(color: AppColors.white, fontSize: 12),
-                ),
-              ),
-            ),
-          ],
+    return Scaffold(
+      backgroundColor: AppColors.slate50,
+      appBar: AppBar(
+        backgroundColor: AppColors.studentPrimary,
+        foregroundColor: AppColors.white,
+        title: const Text('الإشعارات'),
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowRight),
+          onPressed: () => context.pop(),
         ),
-        body: BlocBuilder<NotificationsBloc, BaseState<List<AppNotification>>>(
-          builder: (context, state) {
-            if (state.isLoading || state.isInit) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state.isError) {
-              return _CenterMessage(
-                icon: LucideIcons.circleAlert,
-                color: AppColors.red600,
-                message: state.errorMessage,
-                onRetry: () => context
-                    .read<NotificationsBloc>()
-                    .add(FetchNotificationsEvent()),
-              );
-            }
-            final items = state.data ?? const [];
-            if (items.isEmpty) {
-              return const _CenterMessage(
-                icon: LucideIcons.bellOff,
-                color: AppColors.slate400,
-                message: 'لا توجد إشعارات',
-              );
-            }
+        actions: [
+          TextButton(
+            onPressed: _markAll,
+            child: const Text(
+              'تعليم الكل كمقروء',
+              style: TextStyle(color: AppColors.white, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+      body: BlocBuilder<NotificationsBloc, BaseState<List<AppNotification>>>(
+        bloc: _notificationsBloc,
+        builder: (context, state) {
+          if (state.isLoading || state.isInit) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state.isError) {
+            return _CenterMessage(
+              icon: LucideIcons.circleAlert,
+              color: AppColors.red600,
+              message: state.errorMessage,
+              onRetry: () =>
+                  _notificationsBloc.add(FetchNotificationsEvent()),
+            );
+          }
+          final items = state.data ?? const [];
+          if (items.isEmpty) {
             return RefreshIndicator(
-              onRefresh: () async => context
-                  .read<NotificationsBloc>()
-                  .add(FetchNotificationsEvent()),
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, i) => _NotificationTile(
-                  notification: items[i],
-                  onTap: () {
-                    if (!items[i].isRead) {
-                      context
-                          .read<NotificationsBloc>()
-                          .add(MarkNotificationReadEvent(items[i].id));
-                    }
-                  },
-                ),
+              onRefresh: _onRefresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  _CenterMessage(
+                    icon: LucideIcons.bellOff,
+                    color: AppColors.slate400,
+                    message: 'لا توجد إشعارات',
+                  ),
+                ],
               ),
             );
-          },
-        ),
+          }
+          final showLoadingMore = _notificationsBloc.hasMore;
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView.separated(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length + (showLoadingMore ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                if (i >= items.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
+                return _NotificationTile(
+                  notification: items[i],
+                  onTap: () {
+                    if (!items[i].isRead) _markOne(items[i].id);
+                  },
+                );
+              },
+            ),
+          );
+        },
       ),
     );
   }

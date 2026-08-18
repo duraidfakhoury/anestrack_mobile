@@ -8,6 +8,6 @@ class ListResearchPapersUseCase {
 
   ListResearchPapersUseCase(this.repository);
 
-  Future<Either<Failure, List<ResearchPaper>>> call() =>
-      repository.listResearchPapers();
+  Future<Either<Failure, List<ResearchPaper>>> call({int? limit, int? skip}) =>
+      repository.listResearchPapers(limit: limit, skip: skip);
 }

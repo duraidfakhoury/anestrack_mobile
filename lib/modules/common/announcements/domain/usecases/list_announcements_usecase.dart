@@ -8,6 +8,6 @@ class ListAnnouncementsUseCase {
 
   ListAnnouncementsUseCase(this.repository);
 
-  Future<Either<Failure, List<Announcement>>> call() =>
-      repository.listAnnouncements();
+  Future<Either<Failure, List<Announcement>>> call({int? limit, int? skip}) =>
+      repository.listAnnouncements(limit: limit, skip: skip);
 }

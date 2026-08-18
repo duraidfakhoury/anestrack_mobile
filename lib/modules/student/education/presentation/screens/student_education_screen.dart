@@ -8,53 +8,109 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class StudentEducationScreen extends StatelessWidget {
+class StudentEducationScreen extends StatefulWidget {
   const StudentEducationScreen({super.key});
 
   @override
+  State<StudentEducationScreen> createState() =>
+      _StudentEducationScreenState();
+}
+
+class _StudentEducationScreenState extends State<StudentEducationScreen> {
+  late final LecturesBloc _lecturesBloc;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _lecturesBloc = sl<LecturesBloc>()..add(FetchLecturesEvent());
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _lecturesBloc.close();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _lecturesBloc.add(LoadMoreLecturesEvent());
+    }
+  }
+
+  Future<void> _onRefresh() {
+    _lecturesBloc.add(RefreshLecturesEvent());
+    return _lecturesBloc.stream.firstWhere((state) => !state.isLoading);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<LecturesBloc>()..add(FetchLecturesEvent()),
-      child: Scaffold(
-        backgroundColor: AppColors.slate50,
-        body: Column(
-          children: [
-            _Header(title: 'nav.education'.tr(context: context)),
-            Expanded(
-              child: BlocBuilder<LecturesBloc, BaseState<List<Lecture>>>(
-                builder: (context, state) {
-                  if (state.isLoading || state.isInit) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (state.isError) {
-                    return _ErrorView(
-                      message: state.errorMessage,
-                      onRetry: () =>
-                          context.read<LecturesBloc>().add(FetchLecturesEvent()),
-                    );
-                  }
-                  final items = state.data ?? const [];
-                  if (items.isEmpty) {
-                    return const _EmptyView(
-                      icon: LucideIcons.graduationCap,
-                      message: 'لا توجد محاضرات متاحة',
-                    );
-                  }
+    return Scaffold(
+      backgroundColor: AppColors.slate50,
+      body: Column(
+        children: [
+          _Header(title: 'nav.education'.tr(context: context)),
+          Expanded(
+            child: BlocBuilder<LecturesBloc, BaseState<List<Lecture>>>(
+              bloc: _lecturesBloc,
+              builder: (context, state) {
+                if (state.isLoading || state.isInit) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state.isError) {
+                  return _ErrorView(
+                    message: state.errorMessage,
+                    onRetry: () => _lecturesBloc.add(FetchLecturesEvent()),
+                  );
+                }
+                final items = state.data ?? const [];
+                if (items.isEmpty) {
                   return RefreshIndicator(
-                    onRefresh: () async =>
-                        context.read<LecturesBloc>().add(FetchLecturesEvent()),
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, i) => _LectureCard(lecture: items[i]),
+                    onRefresh: _onRefresh,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        _EmptyView(
+                          icon: LucideIcons.graduationCap,
+                          message: 'لا توجد محاضرات متاحة',
+                        ),
+                      ],
                     ),
                   );
-                },
-              ),
+                }
+                final showLoadingMore = _lecturesBloc.hasMore;
+                return RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: items.length + (showLoadingMore ? 1 : 0),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      if (i >= items.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+                      return _LectureCard(lecture: items[i]);
+                    },
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

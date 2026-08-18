@@ -8,55 +8,109 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class StudentLibraryScreen extends StatelessWidget {
+class StudentLibraryScreen extends StatefulWidget {
   const StudentLibraryScreen({super.key});
 
   @override
+  State<StudentLibraryScreen> createState() => _StudentLibraryScreenState();
+}
+
+class _StudentLibraryScreenState extends State<StudentLibraryScreen> {
+  late final ResearchBloc _researchBloc;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _researchBloc = sl<ResearchBloc>()..add(FetchResearchPapersEvent());
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _researchBloc.close();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _researchBloc.add(LoadMoreResearchPapersEvent());
+    }
+  }
+
+  Future<void> _onRefresh() {
+    _researchBloc.add(RefreshResearchPapersEvent());
+    return _researchBloc.stream.firstWhere((state) => !state.isLoading);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<ResearchBloc>()..add(FetchResearchPapersEvent()),
-      child: Scaffold(
-        backgroundColor: AppColors.slate50,
-        body: Column(
-          children: [
-            _Header(title: 'nav.library'.tr(context: context)),
-            Expanded(
-              child: BlocBuilder<ResearchBloc, BaseState<List<ResearchPaper>>>(
-                builder: (context, state) {
-                  if (state.isLoading || state.isInit) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (state.isError) {
-                    return _ErrorView(
-                      message: state.errorMessage,
-                      onRetry: () => context
-                          .read<ResearchBloc>()
-                          .add(FetchResearchPapersEvent()),
-                    );
-                  }
-                  final items = state.data ?? const [];
-                  if (items.isEmpty) {
-                    return const _EmptyView(
-                      icon: LucideIcons.bookOpen,
-                      message: 'لا توجد أبحاث متاحة',
-                    );
-                  }
+    return Scaffold(
+      backgroundColor: AppColors.slate50,
+      body: Column(
+        children: [
+          _Header(title: 'nav.library'.tr(context: context)),
+          Expanded(
+            child: BlocBuilder<ResearchBloc, BaseState<List<ResearchPaper>>>(
+              bloc: _researchBloc,
+              builder: (context, state) {
+                if (state.isLoading || state.isInit) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state.isError) {
+                  return _ErrorView(
+                    message: state.errorMessage,
+                    onRetry: () =>
+                        _researchBloc.add(FetchResearchPapersEvent()),
+                  );
+                }
+                final items = state.data ?? const [];
+                if (items.isEmpty) {
                   return RefreshIndicator(
-                    onRefresh: () async => context
-                        .read<ResearchBloc>()
-                        .add(FetchResearchPapersEvent()),
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, i) => _PaperCard(paper: items[i]),
+                    onRefresh: _onRefresh,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        _EmptyView(
+                          icon: LucideIcons.bookOpen,
+                          message: 'لا توجد أبحاث متاحة',
+                        ),
+                      ],
                     ),
                   );
-                },
-              ),
+                }
+                final showLoadingMore = _researchBloc.hasMore;
+                return RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: items.length + (showLoadingMore ? 1 : 0),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      if (i >= items.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+                      return _PaperCard(paper: items[i]);
+                    },
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

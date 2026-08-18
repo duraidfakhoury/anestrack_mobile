@@ -15,10 +15,21 @@ class AnnouncementDataSourceImpl extends AnnouncementDataSource {
   }
 
   @override
-  Future<List<AnnouncementModel>> listAnnouncements() async {
+  Future<List<AnnouncementModel>> listAnnouncements({
+    int? limit,
+    int? skip,
+  }) async {
     try {
       _logger.i('Fetching announcements');
-      final response = await NetworkHelper().get(ApisUrls().listAnnouncements);
+      final response = await NetworkHelper().get(
+        ApisUrls().listAnnouncements,
+        data: {
+          if (limit != null) 'limit': limit,
+          if (skip != null) 'skip': skip,
+        },
+      );
+      _logger.i('${response.statusCode} ${response.data}');
+
       final body = _unwrap(response.data);
       if (body is List) {
         return body
