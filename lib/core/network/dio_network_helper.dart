@@ -10,7 +10,18 @@ class DioNetworkHelper extends NetworkHelper {
   static DioNetworkHelper? _instance;
   factory DioNetworkHelper() => _instance ??= DioNetworkHelper._();
 
-  final _dio = Dio();
+  // Plain Dio() has no timeout at all, so a poor connection could hang a
+  // request indefinitely with the UI stuck on a loading state. Capping it
+  // means a stalled request fails predictably (with no response, i.e. the
+  // same NoInternetException path as an outright disconnect) instead of
+  // hanging forever.
+  final _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 20),
+    ),
+  );
   Logger logger = Logger();
   Map<String, dynamic> _buildHeaders(Map<String, dynamic>? headers) {
     final merged = <String, dynamic>{

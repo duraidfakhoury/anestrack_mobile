@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:anestrack_mobile/core/services/connectivity/connectivity_service.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/core/utils/relative_time.dart';
@@ -8,6 +11,9 @@ import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs
 import 'package:anestrack_mobile/modules/common/notifications/presentation/routes/notifications_route.dart';
 import 'package:anestrack_mobile/modules/common/profile/domain/entities/current_user.dart';
 import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_event.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_state.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/create_procedure_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -55,8 +61,18 @@ class StudentHomeScreen extends StatelessWidget {
         BlocProvider(
           create: (_) => sl<AnnouncementsBloc>()..add(FetchAnnouncementsEvent()),
         ),
-        BlocProvider(
-          create: (_) => sl<UnreadCountBloc>()..add(FetchUnreadCountEvent()),
+        // UnreadCountBloc is a singleton owned by the service locator (see
+        // service_locator.dart), so it must be provided via `.value` rather
+        // than `create` — `create` would make flutter_bloc close() it when
+        // this screen is disposed (e.g. on logout), permanently breaking the
+        // singleton for the next login.
+        BlocProvider.value(
+          value: sl<UnreadCountBloc>()..add(FetchUnreadCountEvent()),
+        ),
+        // Same singleton-bloc rule as UnreadCountBloc above.
+        BlocProvider.value(
+          value: sl<PendingProceduresBloc>()
+            ..add(const FetchPendingProceduresEvent()),
         ),
       ],
       child: const _StudentHomeView(),
@@ -105,6 +121,8 @@ class _StudentHomeView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _header(context),
+            const _OfflineIndicator(),
+            _pendingBanner(context),
             _progressCard(context),
             _announcementsSection(context),
           ],
@@ -145,7 +163,7 @@ class _StudentHomeView extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           SizedBox(
-            height: 135,
+            height: 140,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: StudentHomeScreen._statsCards.length,
@@ -155,6 +173,46 @@ class _StudentHomeView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _pendingBanner(BuildContext context) {
+    return BlocBuilder<PendingProceduresBloc, PendingProceduresState>(
+      builder: (context, state) {
+        final count = state.data?.length ?? 0;
+        if (count == 0) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  LucideIcons.cloudUpload,
+                  size: 16,
+                  color: Color(0xFFD97706),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$count إجراء بانتظار المزامنة',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF92400E),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -509,6 +567,77 @@ class _StudentHomeView extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Live device-connectivity banner — distinct from `_pendingBanner`, which
+/// shows the count of items already queued. This shows the real-time
+/// online/offline state driving that queue.
+class _OfflineIndicator extends StatefulWidget {
+  const _OfflineIndicator();
+
+  @override
+  State<_OfflineIndicator> createState() => _OfflineIndicatorState();
+}
+
+class _OfflineIndicatorState extends State<_OfflineIndicator> {
+  final ConnectivityService _connectivityService = sl<ConnectivityService>();
+  bool _isOffline = false;
+  StreamSubscription<bool>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _connectivityService.isOnline().then((online) {
+      if (mounted) setState(() => _isOffline = !online);
+    });
+    _subscription = _connectivityService.onConnectivityChanged.listen((
+      online,
+    ) {
+      if (mounted) setState(() => _isOffline = !online);
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isOffline) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEE2E2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFECACA)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              LucideIcons.wifiOff,
+              size: 16,
+              color: Color(0xFFDC2626),
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'لا يوجد اتصال بالإنترنت — سيتم حفظ أي إجراء جديد محلياً',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF991B1B),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

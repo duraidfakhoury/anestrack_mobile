@@ -18,6 +18,8 @@ import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/c
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_state.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_event.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_event.dart';
 import 'package:intl/intl.dart';
 
 const _teal = Color(0xFF0D9488);
@@ -46,7 +48,6 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
 
-  bool _isOnline = true;
   bool _requestLiveCoSign = false;
   bool _isEmergency = false;
   DateTime? _chosenDate;
@@ -150,7 +151,6 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       notes: _notesController.text.trim().isNotEmpty
           ? _notesController.text.trim()
           : null,
-      isOffline: !_isOnline,
       requestLiveCoSign: _requestLiveCoSign,
       isEmergency: _isEmergency,
       photo: _photoBase64,
@@ -178,6 +178,20 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
         if (mounted) context.go('/student-home/procedures');
       });
     }
+  }
+
+  // Device was offline at submission time — saved locally instead of sent.
+  void _onQueuedOffline() {
+    sl<PendingProceduresBloc>().add(const RefreshPendingProceduresEvent());
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تم الحفظ محلياً — سيتم المزامنة تلقائياً عند عودة الاتصال'),
+        backgroundColor: Color(0xFFD97706),
+      ),
+    );
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) context.go('/student-home/procedures');
+    });
   }
 
   @override
@@ -225,7 +239,11 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
               ),
             );
           } else if (state.isSuccess && state.data != null) {
-            _onCreated(state.data!);
+            if (state.data!.queuedOffline) {
+              _onQueuedOffline();
+            } else {
+              _onCreated(state.data!);
+            }
           }
         },
         builder: (context, state) {
@@ -233,7 +251,6 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildConnectivityBanner(),
                 Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Form(
@@ -312,63 +329,6 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildConnectivityBanner() {
-    return GestureDetector(
-      onTap: () => setState(() => _isOnline = !_isOnline),
-      child: Container(
-        margin: const EdgeInsets.only(top: 16, right: 20, left: 20),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _isOnline ? const Color(0xFFF0FDF4) : const Color(0xFFFEF3C7),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _isOnline
-                ? const Color(0xFFBBF7D0)
-                : const Color(0xFFFDE68A),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              _isOnline ? LucideIcons.wifi : LucideIcons.wifiOff,
-              color: _isOnline
-                  ? const Color(0xFF16A34A)
-                  : const Color(0xFFD97706),
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _isOnline ? 'متصل بالإنترنت' : 'وضع عدم الاتصال',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: _isOnline
-                          ? const Color(0xFF166534)
-                          : const Color(0xFF92400E),
-                    ),
-                  ),
-                  Text(
-                    _isOnline ? 'سيتم الحفظ فوراً' : 'سيُسجّل كإدخال دون اتصال',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _isOnline
-                          ? const Color(0xFF16A34A)
-                          : const Color(0xFFB45309),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

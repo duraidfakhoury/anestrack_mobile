@@ -32,6 +32,32 @@ class CreateProcedureParameters extends Equatable {
     this.photo,
   });
 
+  CreateProcedureParameters copyWith({
+    String? hospitalId,
+    String? procedureTypeId,
+    String? patientName,
+    String? procedureDate,
+    String? supervisorId,
+    String? notes,
+    bool? isOffline,
+    bool? requestLiveCoSign,
+    bool? isEmergency,
+    String? photo,
+  }) {
+    return CreateProcedureParameters(
+      hospitalId: hospitalId ?? this.hospitalId,
+      procedureTypeId: procedureTypeId ?? this.procedureTypeId,
+      patientName: patientName ?? this.patientName,
+      procedureDate: procedureDate ?? this.procedureDate,
+      supervisorId: supervisorId ?? this.supervisorId,
+      notes: notes ?? this.notes,
+      isOffline: isOffline ?? this.isOffline,
+      requestLiveCoSign: requestLiveCoSign ?? this.requestLiveCoSign,
+      isEmergency: isEmergency ?? this.isEmergency,
+      photo: photo ?? this.photo,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'hospitalId': hospitalId,
     'procedureTypeId': procedureTypeId,

@@ -1,5 +1,7 @@
 import 'package:anestrack_mobile/core/services/ble/supervisor_code_ble_scanner.dart';
 import 'package:anestrack_mobile/core/services/ble/student_code_ble_advertiser.dart';
+import 'package:anestrack_mobile/core/services/connectivity/connectivity_service.dart';
+import 'package:anestrack_mobile/core/services/procedure_sync/procedure_sync_service.dart';
 import 'package:anestrack_mobile/core/themes/bloc/theme_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:anestrack_mobile/modules/auth/data/data_soure/auth_data_source.dart';
@@ -11,12 +13,21 @@ import 'package:anestrack_mobile/modules/auth/presentation/blocs/logout_bloc/log
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/procedure_data_source.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/procedure_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/hospital_procedure_type_data_source.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/datasources/pending_procedure_local_data_source.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/datasources/pending_procedure_local_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/datasources/reference_data_local_data_source.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/datasources/reference_data_local_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/procedure_repository.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/repositories/procedure_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/repositories/hospital_procedure_type_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/repositories/pending_procedure_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/hospital_procedure_type_repository.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/pending_procedure_repository.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/create_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/enqueue_offline_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_pending_procedures_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/sync_pending_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/co_sign_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_co_sign_context_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/confirm_procedure_usecase.dart';
@@ -26,6 +37,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_supervisors_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
@@ -96,6 +108,12 @@ class ServicesLocator {
       () => SupervisorCodeBleScannerImpl(),
     );
 
+    // Device network connectivity — trigger only, never the authority on
+    // whether a request actually succeeded (see ConnectivityService doc).
+    sl.registerLazySingleton<ConnectivityService>(
+      () => ConnectivityServiceImpl(),
+    );
+
     // Auth Data Sources
     sl.registerLazySingleton<AuthDataSource>(() => AuthDataSourceImpl());
 
@@ -105,6 +123,12 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<HospitalProcedureTypeDataSource>(
       () => HospitalProcedureTypeDataSourceImpl(),
+    );
+    sl.registerLazySingleton<PendingProcedureLocalDataSource>(
+      () => PendingProcedureLocalDataSourceImpl(),
+    );
+    sl.registerLazySingleton<ReferenceDataLocalDataSource>(
+      () => ReferenceDataLocalDataSourceImpl(),
     );
 
     // Student Data Sources
@@ -148,13 +172,25 @@ class ServicesLocator {
       () => ProcedureRepositoryImpl(sl<ProcedureDataSource>()),
     );
     sl.registerLazySingleton<HospitalRepository>(
-      () => HospitalRepositoryImpl(sl<HospitalProcedureTypeDataSource>()),
+      () => HospitalRepositoryImpl(
+        sl<HospitalProcedureTypeDataSource>(),
+        sl<ReferenceDataLocalDataSource>(),
+      ),
     );
     sl.registerLazySingleton<ProcedureTypeRepository>(
-      () => ProcedureTypeRepositoryImpl(sl<HospitalProcedureTypeDataSource>()),
+      () => ProcedureTypeRepositoryImpl(
+        sl<HospitalProcedureTypeDataSource>(),
+        sl<ReferenceDataLocalDataSource>(),
+      ),
     );
     sl.registerLazySingleton<SupervisorRepository>(
-      () => SupervisorRepositoryImpl(sl<HospitalProcedureTypeDataSource>()),
+      () => SupervisorRepositoryImpl(
+        sl<HospitalProcedureTypeDataSource>(),
+        sl<ReferenceDataLocalDataSource>(),
+      ),
+    );
+    sl.registerLazySingleton<PendingProcedureRepository>(
+      () => PendingProcedureRepositoryImpl(sl<PendingProcedureLocalDataSource>()),
     );
     sl.registerLazySingleton<StudentRepository>(
       () => StudentRepositoryImpl(sl<StudentDataSource>()),
@@ -184,6 +220,19 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<CreateProcedureUseCase>(
       () => CreateProcedureUseCase(sl<ProcedureRepository>()),
+    );
+    sl.registerLazySingleton<EnqueueOfflineProcedureUseCase>(
+      () => EnqueueOfflineProcedureUseCase(sl<PendingProcedureRepository>()),
+    );
+    sl.registerLazySingleton<ListPendingProceduresUseCase>(
+      () => ListPendingProceduresUseCase(sl<PendingProcedureRepository>()),
+    );
+    sl.registerLazySingleton<SyncPendingProceduresUseCase>(
+      () => SyncPendingProceduresUseCase(
+        sl<PendingProcedureRepository>(),
+        sl<ProcedureRepository>(),
+        sl<ConnectivityService>(),
+      ),
     );
     sl.registerLazySingleton<CoSignProcedureUseCase>(
       () => CoSignProcedureUseCase(sl<ProcedureRepository>()),
@@ -250,7 +299,16 @@ class ServicesLocator {
       () => ProceduresBloc(sl<ListProceduresUseCase>()),
     );
     sl.registerFactory<CreateProcedureBloc>(
-      () => CreateProcedureBloc(sl<CreateProcedureUseCase>()),
+      () => CreateProcedureBloc(
+        sl<CreateProcedureUseCase>(),
+        sl<EnqueueOfflineProcedureUseCase>(),
+      ),
+    );
+    // Singleton: student_procedures_screen.dart, student_home_screen.dart
+    // and ProcedureSyncService all need to reach the same pending-queue
+    // instance, same reasoning as ProceduresBloc above.
+    sl.registerLazySingleton<PendingProceduresBloc>(
+      () => PendingProceduresBloc(sl<ListPendingProceduresUseCase>()),
     );
     sl.registerFactory<HospitalsBloc>(
       () => HospitalsBloc(sl<ListHospitalsUseCase>()),
@@ -324,6 +382,16 @@ class ServicesLocator {
     // Library (research)
     sl.registerFactory<ResearchBloc>(
       () => ResearchBloc(sl<ListResearchPapersUseCase>()),
+    );
+
+    // Offline procedure sync — background trigger that drains the pending
+    // queue once connectivity returns. Registered last since it depends on
+    // ConnectivityService and SyncPendingProceduresUseCase above.
+    sl.registerLazySingleton<ProcedureSyncService>(
+      () => ProcedureSyncServiceImpl(
+        sl<ConnectivityService>(),
+        sl<SyncPendingProceduresUseCase>(),
+      ),
     );
   }
 }

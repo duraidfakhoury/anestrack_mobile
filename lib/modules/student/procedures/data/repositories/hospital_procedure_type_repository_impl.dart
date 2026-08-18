@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:anestrack_mobile/core/network/exeptions/failure.dart';
 import 'package:anestrack_mobile/core/network/app_errors_handler.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/datasources/reference_data_local_data_source.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/hospital.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure_type.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/supervisor.dart';
@@ -9,12 +10,13 @@ import '../datasources/hospital_procedure_type_data_source.dart';
 
 class HospitalRepositoryImpl implements HospitalRepository {
   final HospitalProcedureTypeDataSource dataSource;
+  final ReferenceDataLocalDataSource localDataSource;
 
-  HospitalRepositoryImpl(this.dataSource);
+  HospitalRepositoryImpl(this.dataSource, this.localDataSource);
 
   @override
   Future<Either<Failure, List<Hospital>>> listHospitals() async {
-    return AppErrorsHandler().defaultHandleEither(() async {
+    final result = await AppErrorsHandler().defaultHandleEither(() async {
       final models = await dataSource.listHospitals();
       return models
           .map(
@@ -28,17 +30,35 @@ class HospitalRepositoryImpl implements HospitalRepository {
           )
           .toList();
     });
+
+    return result.fold(
+      (failure) async {
+        // Device offline and we have a previously fetched list — fall back
+        // to it rather than leaving the dropdown empty. Any other failure
+        // (server error, parsing, etc.) still surfaces normally.
+        if (failure is NoInternetFailure) {
+          final cached = await localDataSource.getCachedHospitals();
+          if (cached != null) return Right(cached);
+        }
+        return Left(failure);
+      },
+      (hospitals) async {
+        await localDataSource.cacheHospitals(hospitals);
+        return Right(hospitals);
+      },
+    );
   }
 }
 
 class ProcedureTypeRepositoryImpl implements ProcedureTypeRepository {
   final HospitalProcedureTypeDataSource dataSource;
+  final ReferenceDataLocalDataSource localDataSource;
 
-  ProcedureTypeRepositoryImpl(this.dataSource);
+  ProcedureTypeRepositoryImpl(this.dataSource, this.localDataSource);
 
   @override
   Future<Either<Failure, List<ProcedureType>>> listProcedureTypes() async {
-    return AppErrorsHandler().defaultHandleEither(() async {
+    final result = await AppErrorsHandler().defaultHandleEither(() async {
       final models = await dataSource.listProcedureTypes();
       return models
           .map(
@@ -50,21 +70,50 @@ class ProcedureTypeRepositoryImpl implements ProcedureTypeRepository {
           )
           .toList();
     });
+
+    return result.fold(
+      (failure) async {
+        if (failure is NoInternetFailure) {
+          final cached = await localDataSource.getCachedProcedureTypes();
+          if (cached != null) return Right(cached);
+        }
+        return Left(failure);
+      },
+      (procedureTypes) async {
+        await localDataSource.cacheProcedureTypes(procedureTypes);
+        return Right(procedureTypes);
+      },
+    );
   }
 }
 
 class SupervisorRepositoryImpl implements SupervisorRepository {
   final HospitalProcedureTypeDataSource dataSource;
+  final ReferenceDataLocalDataSource localDataSource;
 
-  SupervisorRepositoryImpl(this.dataSource);
+  SupervisorRepositoryImpl(this.dataSource, this.localDataSource);
 
   @override
   Future<Either<Failure, List<Supervisor>>> listSupervisors() async {
-    return AppErrorsHandler().defaultHandleEither(() async {
+    final result = await AppErrorsHandler().defaultHandleEither(() async {
       final models = await dataSource.listSupervisors();
       return models
           .map((model) => Supervisor.fromJson(model.toJson()))
           .toList();
     });
+
+    return result.fold(
+      (failure) async {
+        if (failure is NoInternetFailure) {
+          final cached = await localDataSource.getCachedSupervisors();
+          if (cached != null) return Right(cached);
+        }
+        return Left(failure);
+      },
+      (supervisors) async {
+        await localDataSource.cacheSupervisors(supervisors);
+        return Right(supervisors);
+      },
+    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:anestrack_mobile/core/network/app_errors_handler.dart';
 import 'package:anestrack_mobile/core/network/network_helper.dart';
 import 'package:anestrack_mobile/core/routes/app_routes.dart';
 import 'package:anestrack_mobile/core/services/cache_service.dart';
+import 'package:anestrack_mobile/core/services/procedure_sync/procedure_sync_service.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/themes/app_theme.dart';
 import 'package:anestrack_mobile/core/themes/bloc/theme_bloc.dart';
@@ -25,6 +26,9 @@ Future<void> initVariables() async {
   await CacheService().initCacheTheme();
   NetworkHelper().init(headers: AppHeaders(), handler: AppErrorsHandler());
   await EasyLocalization.ensureInitialized();
+  // Cheap no-op if the offline queue is empty or the user isn't logged in
+  // yet (see SyncPendingProceduresUseCase's hasToken gate).
+  await sl<ProcedureSyncService>().start();
 }
 
 void main() async {

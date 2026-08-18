@@ -12,10 +12,20 @@ class CreateProcedureResult extends Equatable {
   /// (over BLE/QR/manual) before the 10-minute window lapses.
   final String? coSignCode;
 
-  const CreateProcedureResult({required this.procedure, this.coSignCode});
+  /// True when the device was offline at submission time and this procedure
+  /// was saved locally instead of sent — see `CreateProcedureBloc` and
+  /// `ProcedureSyncService`. [procedure] is a local placeholder in that case,
+  /// not a server-confirmed record.
+  final bool queuedOffline;
+
+  const CreateProcedureResult({
+    required this.procedure,
+    this.coSignCode,
+    this.queuedOffline = false,
+  });
 
   bool get requiresLiveCoSign => coSignCode != null;
 
   @override
-  List<Object?> get props => [procedure, coSignCode];
+  List<Object?> get props => [procedure, coSignCode, queuedOffline];
 }

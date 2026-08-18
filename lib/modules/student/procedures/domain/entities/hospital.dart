@@ -12,4 +12,24 @@ class Hospital {
     this.contactInfo,
     required this.isActive,
   });
+
+  /// Local-cache round-trip only (see `ReferenceDataLocalDataSource`) — the
+  /// backend response is parsed by `HospitalModel`, not this.
+  factory Hospital.fromJson(Map<String, dynamic> json) {
+    return Hospital(
+      objectId: json['objectId'] as String,
+      name: json['name'] as String,
+      address: json['address'] as String?,
+      contactInfo: json['contactInfo'] as String?,
+      isActive: json['isActive'] as bool? ?? true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'objectId': objectId,
+    'name': name,
+    'address': address,
+    'contactInfo': contactInfo,
+    'isActive': isActive,
+  };
 }

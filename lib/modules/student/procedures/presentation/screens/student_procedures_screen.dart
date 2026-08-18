@@ -5,6 +5,9 @@ import 'package:anestrack_mobile/core/services/cache_service.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_event.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_state.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_state.dart';
@@ -20,6 +23,7 @@ class StudentProceduresScreen extends StatefulWidget {
 
 class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
   late ProceduresBloc _proceduresBloc;
+  late PendingProceduresBloc _pendingProceduresBloc;
   final ScrollController _scrollController = ScrollController();
   String _filterStatus = 'all';
 
@@ -39,6 +43,8 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
         ListProceduresParameters(studentId: CacheService().userId),
       ),
     );
+    _pendingProceduresBloc = sl<PendingProceduresBloc>()
+      ..add(const FetchPendingProceduresEvent());
     _scrollController.addListener(_onScroll);
   }
 
@@ -74,6 +80,7 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(state.data?.length ?? 0),
+              _buildPendingBanner(),
               _buildFilters(),
               Expanded(child: _buildContent(state)),
             ],
@@ -118,6 +125,45 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPendingBanner() {
+    return BlocBuilder<PendingProceduresBloc, PendingProceduresState>(
+      bloc: _pendingProceduresBloc,
+      builder: (context, state) {
+        final count = state.data?.length ?? 0;
+        if (count == 0) return const SizedBox.shrink();
+        return Container(
+          margin: const EdgeInsets.only(top: 16, right: 20, left: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                LucideIcons.cloudUpload,
+                size: 16,
+                color: Color(0xFFD97706),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$count إجراء بانتظار المزامنة (سيتم إرسالها تلقائياً عند عودة الاتصال)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF92400E),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

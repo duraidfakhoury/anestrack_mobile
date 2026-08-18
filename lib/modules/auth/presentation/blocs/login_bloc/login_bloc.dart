@@ -1,3 +1,5 @@
+import 'package:anestrack_mobile/core/services/procedure_sync/procedure_sync_service.dart';
+import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/modules/auth/domain/entity/login_response.dart';
 import 'package:anestrack_mobile/modules/auth/domain/parameters/login_parameters.dart';
@@ -29,7 +31,12 @@ class LoginBloc extends Bloc<LoginEvent, BaseState<LoginResponse>> {
 
     result.fold(
       (failure) => emit(state.error(failure)),
-      (loginResponse) => emit(state.successNotNull(loginResponse)),
+      (loginResponse) {
+        // Flush anything queued while logged out (or by a previous
+        // session) — fire-and-forget, must not block the login flow.
+        sl<ProcedureSyncService>().syncNow();
+        emit(state.successNotNull(loginResponse));
+      },
     );
   }
 }
