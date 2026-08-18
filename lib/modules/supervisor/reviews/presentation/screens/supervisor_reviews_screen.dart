@@ -515,18 +515,30 @@ class _PendingCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      procedure.procedureTypeName ?? 'إجراء',
-                      style: const TextStyle(
+                    _IconLabel(
+                      icon: LucideIcons.stethoscope,
+                      text: procedure.procedureTypeName ?? 'إجراء',
+                      textStyle: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1F2937),
                       ),
+                      iconColor: const Color(0xFF6A5ACD),
+                    ),
+                    const SizedBox(height: 6),
+                    _IconLabel(
+                      icon: LucideIcons.user,
+                      text: procedure.studentName ?? 'طالب',
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF4B5563),
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      procedure.studentName ?? 'طالب',
-                      style: const TextStyle(
+                    _IconLabel(
+                      icon: LucideIcons.heartPulse,
+                      text: procedure.patientName,
+                      textStyle: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF4B5563),
                       ),
@@ -668,6 +680,32 @@ class _KindBadge extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+class _IconLabel extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final TextStyle textStyle;
+  final Color? iconColor;
+
+  const _IconLabel({
+    required this.icon,
+    required this.text,
+    required this.textStyle,
+    this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: iconColor ?? const Color(0xFF9CA3AF)),
+        const SizedBox(width: 6),
+        Expanded(child: Text(text, style: textStyle)),
+      ],
     );
   }
 }

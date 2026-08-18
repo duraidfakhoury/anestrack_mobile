@@ -63,7 +63,7 @@ class SupervisorRepositoryImpl implements SupervisorRepository {
     return AppErrorsHandler().defaultHandleEither(() async {
       final models = await dataSource.listSupervisors();
       return models
-          .map((model) => Supervisor(objectId: model.objectId, name: model.name))
+          .map((model) => Supervisor.fromJson(model.toJson()))
           .toList();
     });
   }

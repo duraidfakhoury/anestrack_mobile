@@ -517,22 +517,29 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       builder: (context, state) {
         if (state.isLoading) return const _LoadingBar();
         final supervisors = state.data ?? [];
+
+        // Check if _selectedSupervisorId exists in the loaded list
+        final hasMatchingSupervisor = supervisors.any(
+          (s) => s.id == _selectedSupervisorId,
+        );
+        final validSelectedId = hasMatchingSupervisor
+            ? _selectedSupervisorId
+            : null;
+
         return DropdownButtonFormField<String>(
-          value: _selectedSupervisorId,
+          value: validSelectedId, // Ensures value is null if invalid or missing
           isExpanded: true,
           hint: const Text("اختر المشرف المسؤول", style: _hintStyle),
           decoration: _decoration(prefixIcon: LucideIcons.userCheck),
           items: supervisors
               .map(
                 (s) => DropdownMenuItem<String>(
-                  value: s.objectId,
-                  child: Text(s.name, style: const TextStyle(fontSize: 14)),
+                  value: s.id,
+                  child: Text(s.fullName, style: const TextStyle(fontSize: 14)),
                 ),
               )
               .toList(),
           onChanged: (v) => setState(() => _selectedSupervisorId = v),
-          // Optional: without a supervisor a non-live log stays unconfirmed,
-          // and the backend accepts it either way.
           validator: (v) {
             if (!_requestLiveCoSign && v == null) {
               return 'اختر مشرفاً ليؤكّد الإجراء (أو فعّل التوقيع المباشر)';
