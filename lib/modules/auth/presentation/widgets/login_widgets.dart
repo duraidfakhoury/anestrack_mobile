@@ -35,17 +35,14 @@ class LoginLogoSection extends StatelessWidget {
           height: 80,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(18),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
           ),
           child: const Center(
-            child: Text(
-              'AT',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0D9488),
-              ),
+            child: Image(
+              image: AssetImage('assets/images/icon_on_light_1024.png'),
+              width: 72,
+              height: 72,
             ),
           ),
         ),
@@ -168,18 +165,18 @@ class LoginLabeledField extends StatelessWidget {
               hintText: hint,
               prefixIcon: Icon(icon, color: Colors.grey, size: 20),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: const Color.fromARGB(255, 233, 233, 233),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 16,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[200]!),
+                borderSide: BorderSide(color: Colors.grey[400]!),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[200]!),
+                borderSide: BorderSide(color: Colors.grey[400]!),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),

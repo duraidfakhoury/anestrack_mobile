@@ -15,6 +15,7 @@ class CurrentUser extends Equatable {
   final String? employeePosition;
   final String? employeeEmail;
   final String? alias;
+  final String? professionalTitle;
   final bool isSuperAdmin;
   final bool isBlocked;
 
@@ -31,6 +32,7 @@ class CurrentUser extends Equatable {
     this.employeePosition,
     this.employeeEmail,
     this.alias,
+    this.professionalTitle,
     this.isSuperAdmin = false,
     this.isBlocked = false,
   });
@@ -42,6 +44,8 @@ class CurrentUser extends Equatable {
   }
 
   bool get isStudent => userType == 'Student';
+
+  bool get isSupervisor => userType == 'Supervisor';
 
   @override
   List<Object?> get props => [
@@ -57,6 +61,7 @@ class CurrentUser extends Equatable {
     employeePosition,
     employeeEmail,
     alias,
+    professionalTitle,
     isSuperAdmin,
     isBlocked,
   ];

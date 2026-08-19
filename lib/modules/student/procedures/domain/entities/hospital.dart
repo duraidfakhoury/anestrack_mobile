@@ -1,12 +1,12 @@
 class Hospital {
-  final String objectId;
+  final String id;
   final String name;
   final String? address;
   final String? contactInfo;
   final bool isActive;
 
   Hospital({
-    required this.objectId,
+    required this.id,
     required this.name,
     this.address,
     this.contactInfo,
@@ -17,7 +17,7 @@ class Hospital {
   /// backend response is parsed by `HospitalModel`, not this.
   factory Hospital.fromJson(Map<String, dynamic> json) {
     return Hospital(
-      objectId: json['objectId'] as String,
+      id: json['id'] as String,
       name: json['name'] as String,
       address: json['address'] as String?,
       contactInfo: json['contactInfo'] as String?,
@@ -26,7 +26,7 @@ class Hospital {
   }
 
   Map<String, dynamic> toJson() => {
-    'objectId': objectId,
+    'id': id,
     'name': name,
     'address': address,
     'contactInfo': contactInfo,

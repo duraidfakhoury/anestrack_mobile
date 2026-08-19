@@ -21,7 +21,7 @@ class HospitalRepositoryImpl implements HospitalRepository {
       return models
           .map(
             (model) => Hospital(
-              objectId: model.objectId,
+              id: model.id,
               name: model.name,
               address: model.address,
               contactInfo: model.contactInfo,
@@ -63,7 +63,7 @@ class ProcedureTypeRepositoryImpl implements ProcedureTypeRepository {
       return models
           .map(
             (model) => ProcedureType(
-              objectId: model.objectId,
+              id: model.id,
               name: model.name,
               isActive: model.isActive,
             ),

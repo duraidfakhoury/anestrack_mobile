@@ -50,6 +50,10 @@ class ApisUrls {
   /// Profile / current user
   String get getCurrentUser => '$_baseApiUrl/functions/getCurrentUser';
 
+  /// Statistics
+  String get getSupervisorDashboard =>
+      '$_baseApiUrl/functions/getSupervisorDashboard';
+
   /// Complaints
   String get createComplaint => '$_baseApiUrl/functions/createComplaint';
 

@@ -14,6 +14,7 @@ class CurrentUserModel extends CurrentUser {
     super.employeePosition,
     super.employeeEmail,
     super.alias,
+    super.professionalTitle,
     super.isSuperAdmin,
     super.isBlocked,
   });
@@ -36,6 +37,7 @@ class CurrentUserModel extends CurrentUser {
       employeeEmail:
           (json['EmployeeEmail'] ?? json['employeeEmail']) as String?,
       alias: (json['Alias'] ?? json['alias']) as String?,
+      professionalTitle: json['professionalTitle'] as String?,
       isSuperAdmin: json['isSuperAdmin'] as bool? ?? false,
       isBlocked: json['isBlocked'] as bool? ?? false,
     );

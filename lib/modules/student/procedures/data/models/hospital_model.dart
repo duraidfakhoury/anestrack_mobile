@@ -1,21 +1,17 @@
-class HospitalModel {
-  final String objectId;
-  final String name;
-  final String? address;
-  final String? contactInfo;
-  final bool isActive;
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/hospital.dart';
 
+class HospitalModel extends Hospital {
   HospitalModel({
-    required this.objectId,
-    required this.name,
-    this.address,
-    this.contactInfo,
-    required this.isActive,
+    required super.id,
+    required super.name,
+    super.address,
+    super.contactInfo,
+    required super.isActive,
   });
 
   factory HospitalModel.fromJson(Map<String, dynamic> json) {
     return HospitalModel(
-      objectId: json['objectId'] as String,
+      id: (json['objectId'] ?? json['id']) as String? ?? '',
       name: json['name'] as String,
       address: json['address'] as String?,
       contactInfo: json['contactInfo'] as String?,
@@ -25,7 +21,7 @@ class HospitalModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'objectId': objectId,
+      'objectId': id,
       'name': name,
       'address': address,
       'contactInfo': contactInfo,

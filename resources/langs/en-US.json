@@ -148,6 +148,19 @@
             "fourth": "Fourth year"
         }
     },
+    "supervisor_home": {
+        "approved_procedures": "Approved Procedures",
+        "out_of_total": "Out of {} total procedures",
+        "pending_approvals": "Pending Approvals",
+        "requires_immediate_review": "Requires immediate review",
+        "procedures_by_type_title": "Procedures by Type",
+        "general_statistics": "General Statistics",
+        "total_procedures": "Total Procedures",
+        "rejected_procedures": "Rejected Procedures",
+        "active_students": "Active Students",
+        "choose_hospital": "Choose Hospital",
+        "all_hospitals": "All Hospitals"
+    },
     "co_sign": {
         "title": "Live Co-sign",
         "done": "Done",

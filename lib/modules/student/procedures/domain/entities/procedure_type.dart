@@ -1,10 +1,10 @@
 class ProcedureType {
-  final String objectId;
+  final String id;
   final String name;
   final bool isActive;
 
   ProcedureType({
-    required this.objectId,
+    required this.id,
     required this.name,
     required this.isActive,
   });
@@ -13,14 +13,14 @@ class ProcedureType {
   /// backend response is parsed by `ProcedureTypeModel`, not this.
   factory ProcedureType.fromJson(Map<String, dynamic> json) {
     return ProcedureType(
-      objectId: json['objectId'] as String,
+      id: json['id'] as String,
       name: json['name'] as String,
       isActive: json['isActive'] as bool? ?? true,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'objectId': objectId,
+    'id': id,
     'name': name,
     'isActive': isActive,
   };

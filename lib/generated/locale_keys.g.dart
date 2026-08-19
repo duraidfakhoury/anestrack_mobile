@@ -144,6 +144,18 @@ abstract class  LocaleKeys {
   static const supervisor_students_year_fourth = 'supervisor_students.year.fourth';
   static const supervisor_students_year = 'supervisor_students.year';
   static const supervisor_students = 'supervisor_students';
+  static const supervisor_home_approved_procedures = 'supervisor_home.approved_procedures';
+  static const supervisor_home_out_of_total = 'supervisor_home.out_of_total';
+  static const supervisor_home_pending_approvals = 'supervisor_home.pending_approvals';
+  static const supervisor_home_requires_immediate_review = 'supervisor_home.requires_immediate_review';
+  static const supervisor_home_procedures_by_type_title = 'supervisor_home.procedures_by_type_title';
+  static const supervisor_home_general_statistics = 'supervisor_home.general_statistics';
+  static const supervisor_home_total_procedures = 'supervisor_home.total_procedures';
+  static const supervisor_home_rejected_procedures = 'supervisor_home.rejected_procedures';
+  static const supervisor_home_active_students = 'supervisor_home.active_students';
+  static const supervisor_home_choose_hospital = 'supervisor_home.choose_hospital';
+  static const supervisor_home_all_hospitals = 'supervisor_home.all_hospitals';
+  static const supervisor_home = 'supervisor_home';
   static const co_sign_title = 'co_sign.title';
   static const co_sign_done = 'co_sign.done';
   static const co_sign_header_prompt = 'co_sign.header_prompt';
@@ -171,6 +183,7 @@ abstract class  LocaleKeys {
   static const co_sign_near_me_title = 'co_sign.near_me_title';
   static const co_sign_near_me_subtitle = 'co_sign.near_me_subtitle';
   static const co_sign_scan_title = 'co_sign.scan_title';
+  static const co_sign_scan_qr_subtitle = 'co_sign.scan_qr_subtitle';
   static const co_sign_scanning_ble = 'co_sign.scanning_ble';
   static const co_sign_scan_qr_instead = 'co_sign.scan_qr_instead';
   static const co_sign_scan_ble_instead = 'co_sign.scan_ble_instead';
@@ -183,7 +196,6 @@ abstract class  LocaleKeys {
   static const co_sign_use_qr_instead = 'co_sign.use_qr_instead';
   static const co_sign_waiting_for_supervisor = 'co_sign.waiting_for_supervisor';
   static const co_sign_time_remaining = 'co_sign.time_remaining';
-  static const co_sign_scan_qr_subtitle = 'co_sign.scan_qr_subtitle';
   static const co_sign = 'co_sign';
   static const ble_debug_title_student = 'ble_debug.title_student';
   static const ble_debug_title_supervisor = 'ble_debug.title_supervisor';

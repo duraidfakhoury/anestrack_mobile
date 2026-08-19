@@ -47,9 +47,9 @@ class StudentHomeScreen extends StatelessWidget {
     },
   ];
 
-  static const int _currentYear = 3;
-  static const int _loggedProcedures = 120;
-  static const int _requiredProcedures = 200;
+  static const int _currentYear = 2;
+  static const int _loggedProcedures = 33;
+  static const int _requiredProcedures = 300;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +59,8 @@ class StudentHomeScreen extends StatelessWidget {
           create: (_) => sl<CurrentUserBloc>()..add(FetchCurrentUserEvent()),
         ),
         BlocProvider(
-          create: (_) => sl<AnnouncementsBloc>()..add(FetchAnnouncementsEvent()),
+          create: (_) =>
+              sl<AnnouncementsBloc>()..add(FetchAnnouncementsEvent()),
         ),
         // UnreadCountBloc is a singleton owned by the service locator (see
         // service_locator.dart), so it must be provided via `.value` rather
@@ -84,7 +85,8 @@ class _StudentHomeView extends StatelessWidget {
   const _StudentHomeView();
 
   double get _progressPercentage =>
-      StudentHomeScreen._loggedProcedures / StudentHomeScreen._requiredProcedures;
+      StudentHomeScreen._loggedProcedures /
+      StudentHomeScreen._requiredProcedures;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +147,11 @@ class _StudentHomeView extends StatelessWidget {
           bottomRight: Radius.circular(24),
         ),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -222,8 +228,8 @@ class _StudentHomeView extends StatelessWidget {
     final sub = user == null
         ? ''
         : (user.isStudent
-            ? (year != null ? 'طالب - السنة $year' : 'طالب')
-            : (user.employeePosition ?? 'مشرف'));
+              ? (year != null ? 'طالب - السنة $year' : 'طالب')
+              : (user.employeePosition ?? 'مشرف'));
     return Row(
       children: [
         Container(
@@ -253,7 +259,10 @@ class _StudentHomeView extends StatelessWidget {
               if (sub.isNotEmpty)
                 Text(
                   sub,
-                  style: const TextStyle(color: Color(0xFFA5F3FC), fontSize: 11),
+                  style: const TextStyle(
+                    color: Color(0xFFA5F3FC),
+                    fontSize: 11,
+                  ),
                 ),
             ],
           ),
@@ -285,8 +294,10 @@ class _StudentHomeView extends StatelessWidget {
                     right: 6,
                     child: Container(
                       padding: const EdgeInsets.all(2),
-                      constraints:
-                          const BoxConstraints(minWidth: 14, minHeight: 14),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(8),
@@ -407,7 +418,10 @@ class _StudentHomeView extends StatelessWidget {
                       ),
                       Text(
                         'انقر لعرض الخطة الدراسية الكاملة',
-                        style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 13),
+                        style: TextStyle(
+                          color: Color(0xFFE0E7FF),
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -425,8 +439,9 @@ class _StudentHomeView extends StatelessWidget {
                   value: _progressPercentage,
                   minHeight: 10,
                   backgroundColor: Colors.black.withValues(alpha: 0.2),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(Color(0xFFFBBF24)),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFFFBBF24),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -488,7 +503,9 @@ class _StudentHomeView extends StatelessWidget {
                   child: CircularProgressIndicator(),
                 );
               }
-              final items = (state.data ?? const <Announcement>[]).take(3).toList();
+              final items = (state.data ?? const <Announcement>[])
+                  .take(3)
+                  .toList();
               if (items.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
@@ -498,9 +515,7 @@ class _StudentHomeView extends StatelessWidget {
                   ),
                 );
               }
-              return Column(
-                children: items.map(_announcementTile).toList(),
-              );
+              return Column(children: items.map(_announcementTile).toList());
             },
           ),
           const SizedBox(height: 100),
@@ -593,9 +608,7 @@ class _OfflineIndicatorState extends State<_OfflineIndicator> {
     _connectivityService.isOnline().then((online) {
       if (mounted) setState(() => _isOffline = !online);
     });
-    _subscription = _connectivityService.onConnectivityChanged.listen((
-      online,
-    ) {
+    _subscription = _connectivityService.onConnectivityChanged.listen((online) {
       if (mounted) setState(() => _isOffline = !online);
     });
   }
@@ -620,11 +633,7 @@ class _OfflineIndicatorState extends State<_OfflineIndicator> {
         ),
         child: Row(
           children: [
-            const Icon(
-              LucideIcons.wifiOff,
-              size: 16,
-              color: Color(0xFFDC2626),
-            ),
+            const Icon(LucideIcons.wifiOff, size: 16, color: Color(0xFFDC2626)),
             const SizedBox(width: 8),
             const Expanded(
               child: Text(

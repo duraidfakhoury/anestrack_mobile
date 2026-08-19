@@ -164,6 +164,19 @@ class CodegenLoader extends AssetLoader{
       "fourth": "سنة رابعة"
     }
   },
+  "supervisor_home": {
+    "approved_procedures": "الإجراءات المعتمدة",
+    "out_of_total": "من أصل {} إجراء مسجل",
+    "pending_approvals": "الموافقات المعلقة",
+    "requires_immediate_review": "تتطلب مراجعة فورية",
+    "procedures_by_type_title": "توزيع الإجراءات حسب النوع",
+    "general_statistics": "الإحصائيات العامة",
+    "total_procedures": "إجمالي الإجراءات",
+    "rejected_procedures": "الإجراءات المرفوضة",
+    "active_students": "الطلاب النشطون",
+    "choose_hospital": "اختر المستشفى",
+    "all_hospitals": "جميع المستشفيات"
+  },
   "co_sign": {
     "title": "التوقيع المباشر",
     "done": "تم",
@@ -382,6 +395,19 @@ static const Map<String,dynamic> _en_US = {
       "third": "Third year",
       "fourth": "Fourth year"
     }
+  },
+  "supervisor_home": {
+    "approved_procedures": "Approved Procedures",
+    "out_of_total": "Out of {} total procedures",
+    "pending_approvals": "Pending Approvals",
+    "requires_immediate_review": "Requires immediate review",
+    "procedures_by_type_title": "Procedures by Type",
+    "general_statistics": "General Statistics",
+    "total_procedures": "Total Procedures",
+    "rejected_procedures": "Rejected Procedures",
+    "active_students": "Active Students",
+    "choose_hospital": "Choose Hospital",
+    "all_hospitals": "All Hospitals"
   },
   "co_sign": {
     "title": "Live Co-sign",

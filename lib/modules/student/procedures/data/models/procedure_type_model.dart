@@ -1,23 +1,23 @@
-class ProcedureTypeModel {
-  final String objectId;
-  final String name;
-  final bool isActive;
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure_type.dart';
 
+class ProcedureTypeModel extends ProcedureType {
   ProcedureTypeModel({
-    required this.objectId,
-    required this.name,
-    required this.isActive,
-  });
+    required String id,
+    required String name,
+    required bool isActive,
+  }) : super(id: id, name: name, isActive: isActive);
+
+   
 
   factory ProcedureTypeModel.fromJson(Map<String, dynamic> json) {
     return ProcedureTypeModel(
-      objectId: json['objectId'] as String,
+      id: json['id'] as String,
       name: json['name'] as String,
       isActive: json['isActive'] as bool? ?? true,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'objectId': objectId, 'name': name, 'isActive': isActive};
+    return {'id': id, 'name': name, 'isActive': isActive};
   }
 }

@@ -148,6 +148,19 @@
             "fourth": "سنة رابعة"
         }
     },
+    "supervisor_home": {
+        "approved_procedures": "الإجراءات المعتمدة",
+        "out_of_total": "من أصل {} إجراء مسجل",
+        "pending_approvals": "الموافقات المعلقة",
+        "requires_immediate_review": "تتطلب مراجعة فورية",
+        "procedures_by_type_title": "توزيع الإجراءات حسب النوع",
+        "general_statistics": "الإحصائيات العامة",
+        "total_procedures": "إجمالي الإجراءات",
+        "rejected_procedures": "الإجراءات المرفوضة",
+        "active_students": "الطلاب النشطون",
+        "choose_hospital": "اختر المستشفى",
+        "all_hospitals": "جميع المستشفيات"
+    },
     "co_sign": {
         "title": "التوقيع المباشر",
         "done": "تم",

@@ -433,7 +433,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
           items: hospitals
               .map(
                 (h) => DropdownMenuItem<String>(
-                  value: h.objectId,
+                  value: h.id,
                   child: Text(h.name, style: const TextStyle(fontSize: 14)),
                 ),
               )
@@ -459,7 +459,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
           items: types
               .map(
                 (t) => DropdownMenuItem<String>(
-                  value: t.objectId,
+                  value: t.id,
                   child: Text(t.name, style: const TextStyle(fontSize: 14)),
                 ),
               )
