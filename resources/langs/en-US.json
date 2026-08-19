@@ -109,7 +109,7 @@
         "filter_all": "All",
         "filter_video": "Video",
         "filter_document": "Document",
-        "filter_text": "Text",
+        "filter_link": "Link",
         "empty_lectures": "No lectures available",
         "retry": "Retry",
         "ai_summary": "AI Summary",

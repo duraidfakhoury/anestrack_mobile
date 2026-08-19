@@ -108,7 +108,7 @@ abstract class  LocaleKeys {
   static const education_filter_all = 'education.filter_all';
   static const education_filter_video = 'education.filter_video';
   static const education_filter_document = 'education.filter_document';
-  static const education_filter_text = 'education.filter_text';
+  static const education_filter_link = 'education.filter_link';
   static const education_empty_lectures = 'education.empty_lectures';
   static const education_retry = 'education.retry';
   static const education_ai_summary = 'education.ai_summary';
