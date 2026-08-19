@@ -2,16 +2,14 @@ import 'package:dartz/dartz.dart';
 import 'package:anestrack_mobile/core/network/exeptions/failure.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/entities/research_paper.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/parameters/create_research_paper_parameters.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/repositories/research_repository.dart';
 
-abstract class ResearchRepository {
-  Future<Either<Failure, List<ResearchPaper>>> listResearchPapers({
-    int? limit,
-    int? skip,
-  });
+class CreateResearchPaperUseCase {
+  final ResearchRepository repository;
 
-  Future<Either<Failure, ResearchPaper>> getResearchPaper(String id);
+  CreateResearchPaperUseCase(this.repository);
 
-  Future<Either<Failure, ResearchPaper>> createResearchPaper(
+  Future<Either<Failure, ResearchPaper>> call(
     CreateResearchPaperParameters parameters,
-  );
+  ) => repository.createResearchPaper(parameters);
 }

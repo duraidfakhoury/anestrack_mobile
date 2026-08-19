@@ -18,6 +18,9 @@ import 'package:anestrack_mobile/modules/student/education/presentation/routes/l
 import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_quiz_route.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_quiz_result_route.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_assistant_route.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_route.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/routes/publish_research_route.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/routes/research_paper_detail_route.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../modules/auth/presentation/routes/login_route.dart';
@@ -63,6 +66,9 @@ class AppRoutes {
       LectureQuizRoute.route,
       LectureQuizResultRoute.route,
       LectureAssistantRoute.route,
+      ResearchPaperDetailRoute.route,
+      PublishResearchRoute.route,
+      PdfViewerRoute.route,
     ],
   );
 }

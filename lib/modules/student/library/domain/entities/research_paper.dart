@@ -9,6 +9,7 @@ class ResearchPaper extends Equatable {
   final String? fileUrl;
   final String? publishedAt;
   final String? studentName;
+  final String? researchTypeName;
 
   const ResearchPaper({
     required this.id,
@@ -18,6 +19,7 @@ class ResearchPaper extends Equatable {
     this.fileUrl,
     this.publishedAt,
     this.studentName,
+    this.researchTypeName,
   });
 
   @override
@@ -29,5 +31,6 @@ class ResearchPaper extends Equatable {
     fileUrl,
     publishedAt,
     studentName,
+    researchTypeName,
   ];
 }

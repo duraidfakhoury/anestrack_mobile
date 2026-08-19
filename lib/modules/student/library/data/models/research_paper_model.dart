@@ -9,11 +9,12 @@ class ResearchPaperModel extends ResearchPaper {
     super.fileUrl,
     super.publishedAt,
     super.studentName,
+    super.researchTypeName,
   });
 
   factory ResearchPaperModel.fromJson(Map<String, dynamic> json) {
     return ResearchPaperModel(
-      id: json['objectId'] as String? ?? '',
+      id: json['id'] as String? ?? json['objectId'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       authors:
@@ -22,7 +23,15 @@ class ResearchPaperModel extends ResearchPaper {
       fileUrl: json['file'] as String?,
       publishedAt: _parseDate(json['publishedAt']),
       studentName: _userFullName(json['student']),
+      researchTypeName: _researchTypeName(json['researchType']),
     );
+  }
+
+  static String? _researchTypeName(dynamic value) {
+    if (value is Map && value['name'] != null) {
+      return value['name'] as String?;
+    }
+    return null;
   }
 
   static String? _parseDate(dynamic value) {
@@ -34,8 +43,8 @@ class ResearchPaperModel extends ResearchPaper {
 
   static String? _userFullName(dynamic value) {
     if (value is Map) {
-      final first = (value['FirstName'] as String?) ?? '';
-      final last = (value['LastName'] as String?) ?? '';
+      final first = (value['firstName'] ?? value['FirstName']) as String? ?? '';
+      final last = (value['lastName'] ?? value['LastName']) as String? ?? '';
       final full = '$first $last'.trim();
       if (full.isNotEmpty) return full;
     }

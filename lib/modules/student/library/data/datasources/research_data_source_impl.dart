@@ -3,6 +3,7 @@ import 'package:anestrack_mobile/core/constants/api_urls.dart';
 import 'package:anestrack_mobile/core/network/network_helper.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source.dart';
 import 'package:anestrack_mobile/modules/student/library/data/models/research_paper_model.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/parameters/create_research_paper_parameters.dart';
 
 class ResearchDataSourceImpl extends ResearchDataSource {
   final Logger _logger = Logger();
@@ -41,6 +42,46 @@ class ResearchDataSourceImpl extends ResearchDataSource {
       return [];
     } catch (e) {
       _logger.e('Failed to fetch research papers: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<ResearchPaperModel> getResearchPaper(String id) async {
+    try {
+      _logger.i('Fetching research paper $id');
+      final response = await NetworkHelper().get(
+        ApisUrls().getResearchPaper,
+        data: {'id': id},
+      );
+      final body = _unwrap(response.data);
+      if (body is Map) {
+        return ResearchPaperModel.fromJson(Map<String, dynamic>.from(body));
+      }
+      throw Exception('Unexpected research paper response: ${response.data}');
+    } catch (e) {
+      _logger.e('Failed to fetch research paper $id: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<ResearchPaperModel> createResearchPaper(
+    CreateResearchPaperParameters parameters,
+  ) async {
+    try {
+      _logger.i('Publishing research paper "${parameters.title}"');
+      final response = await NetworkHelper().post(
+        ApisUrls().createResearchPaper,
+        data: parameters.toJson(),
+      );
+      final body = _unwrap(response.data);
+      if (body is Map) {
+        return ResearchPaperModel.fromJson(Map<String, dynamic>.from(body));
+      }
+      throw Exception('Unexpected create research paper response: ${response.data}');
+    } catch (e) {
+      _logger.e('Failed to publish research paper: $e');
       rethrow;
     }
   }

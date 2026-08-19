@@ -77,4 +77,8 @@ class ApisUrls {
 
   /// Library — research papers
   String get listResearchPapers => '$_baseApiUrl/functions/listResearchPapers';
+  String get getResearchPaper => '$_baseApiUrl/functions/getResearchPaper';
+  String get createResearchPaper =>
+      '$_baseApiUrl/functions/createResearchPaper';
+  String get listResearchTypes => '$_baseApiUrl/functions/listResearchTypes';
 }

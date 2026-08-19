@@ -1,11 +1,17 @@
 import 'package:anestrack_mobile/core/constants/app_colors.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
+import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/entities/research_paper.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_bloc.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_args.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_route.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/routes/publish_research_route.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/routes/research_paper_detail_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class StudentLibraryScreen extends StatefulWidget {
@@ -46,79 +52,104 @@ class _StudentLibraryScreenState extends State<StudentLibraryScreen> {
     return _researchBloc.stream.firstWhere((state) => !state.isLoading);
   }
 
+  Future<void> _onPublishPressed() async {
+    final published = await context.push<bool>(PublishResearchRoute.name);
+    if (published == true) {
+      _researchBloc.add(RefreshResearchPapersEvent());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.slate50,
-      body: Column(
-        children: [
-          _Header(title: 'nav.library'.tr(context: context)),
-          Expanded(
-            child: BlocBuilder<ResearchBloc, BaseState<List<ResearchPaper>>>(
-              bloc: _researchBloc,
-              builder: (context, state) {
-                if (state.isLoading || state.isInit) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state.isError) {
-                  return _ErrorView(
-                    message: state.errorMessage,
-                    onRetry: () =>
-                        _researchBloc.add(FetchResearchPapersEvent()),
-                  );
-                }
-                final items = state.data ?? const [];
-                if (items.isEmpty) {
-                  return RefreshIndicator(
-                    onRefresh: _onRefresh,
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        _EmptyView(
-                          icon: LucideIcons.bookOpen,
-                          message: 'لا توجد أبحاث متاحة',
+      body: BlocBuilder<ResearchBloc, BaseState<List<ResearchPaper>>>(
+        bloc: _researchBloc,
+        builder: (context, state) {
+          final items = state.data ?? const [];
+          return Column(
+            children: [
+              _Header(paperCount: items.length, onPublish: _onPublishPressed),
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    if (state.isLoading || state.isInit) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (state.isError) {
+                      return _ErrorView(
+                        message: state.errorMessage,
+                        onRetry: () =>
+                            _researchBloc.add(FetchResearchPapersEvent()),
+                      );
+                    }
+                    if (items.isEmpty) {
+                      return RefreshIndicator(
+                        onRefresh: _onRefresh,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            _EmptyView(
+                              icon: LucideIcons.bookOpen,
+                              message: LocaleKeys.library_empty_papers.tr(),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                }
-                final showLoadingMore = _researchBloc.hasMore;
-                return RefreshIndicator(
-                  onRefresh: _onRefresh,
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: items.length + (showLoadingMore ? 1 : 0),
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      if (i >= items.length) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          child: Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                      );
+                    }
+                    final showLoadingMore = _researchBloc.hasMore;
+                    return RefreshIndicator(
+                      onRefresh: _onRefresh,
+                      child: ListView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          const _CouncilReportBanner(),
+                          const SizedBox(height: 16),
+                          Text(
+                            LocaleKeys.library_papers_section_title.tr(),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.slate900,
                             ),
                           ),
-                        );
-                      }
-                      return _PaperCard(paper: items[i]);
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+                          const SizedBox(height: 12),
+                          for (final paper in items) ...[
+                            _PaperCard(paper: paper),
+                            const SizedBox(height: 12),
+                          ],
+                          if (showLoadingMore)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.title});
-  final String title;
+  const _Header({required this.paperCount, required this.onPublish});
+  final int paperCount;
+  final VoidCallback onPublish;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +168,7 @@ class _Header extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            LocaleKeys.library_title.tr(),
             style: const TextStyle(
               color: AppColors.white,
               fontSize: 20,
@@ -145,9 +176,83 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'الأبحاث والدراسات العلمية',
-            style: TextStyle(color: AppColors.studentPrimaryLight, fontSize: 12),
+          Text(
+            LocaleKeys.library_papers_available.tr(
+              args: [paperCount.toString()],
+            ),
+            style: const TextStyle(
+              color: AppColors.studentPrimaryLight,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.white.withValues(alpha: 0.15),
+                foregroundColor: AppColors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: AppColors.white.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+              onPressed: onPublish,
+              icon: const Icon(LucideIcons.upload, size: 18),
+              label: Text(
+                LocaleKeys.library_publish_research.tr(),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CouncilReportBanner extends StatelessWidget {
+  const _CouncilReportBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.blue100,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(LucideIcons.fileText, color: AppColors.blue600, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  LocaleKeys.library_council_report_title.tr(),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.blue600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  LocaleKeys.library_council_report_body.tr(),
+                  style: const TextStyle(fontSize: 12, color: AppColors.blue600),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -158,6 +263,14 @@ class _Header extends StatelessWidget {
 class _PaperCard extends StatelessWidget {
   const _PaperCard({required this.paper});
   final ResearchPaper paper;
+
+  String? get _formattedDate {
+    final raw = paper.publishedAt;
+    if (raw == null) return null;
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return null;
+    return DateFormat('yyyy/MM/dd').format(parsed);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,13 +320,6 @@ class _PaperCard extends StatelessWidget {
               ),
             ],
           ),
-          if (paper.description.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              paper.description,
-              style: const TextStyle(fontSize: 12, color: AppColors.slate600),
-            ),
-          ],
           if (paper.authors.isNotEmpty) ...[
             const SizedBox(height: 10),
             Row(
@@ -232,22 +338,78 @@ class _PaperCard extends StatelessWidget {
               ],
             ),
           ],
-          if (paper.studentName != null) ...[
+          if (_formattedDate != null) ...[
             const SizedBox(height: 6),
             Row(
               children: [
-                const Icon(LucideIcons.user, size: 14, color: AppColors.slate500),
+                const Icon(
+                  LucideIcons.calendar,
+                  size: 14,
+                  color: AppColors.slate500,
+                ),
                 const SizedBox(width: 6),
                 Text(
-                  paper.studentName!,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.slate500,
-                  ),
+                  _formattedDate!,
+                  style: const TextStyle(fontSize: 11, color: AppColors.slate500),
                 ),
               ],
             ),
           ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: AppColors.blue100,
+                    foregroundColor: AppColors.blue600,
+                    side: BorderSide.none,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: paper.fileUrl == null
+                      ? null
+                      : () => context.push(
+                          PdfViewerRoute.name,
+                          extra: PdfViewerArgs(
+                            title: paper.title,
+                            url: paper.fileUrl!,
+                          ),
+                        ),
+                  icon: const Icon(LucideIcons.download, size: 14),
+                  label: Text(
+                    LocaleKeys.library_download_pdf.tr(),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: AppColors.studentPrimaryLight,
+                    foregroundColor: AppColors.studentPrimary,
+                    side: BorderSide.none,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () => context.push(
+                    '${ResearchPaperDetailRoute.name}/${paper.id}',
+                    extra: paper,
+                  ),
+                  icon: const Icon(LucideIcons.eye, size: 14),
+                  label: Text(
+                    LocaleKeys.library_view.tr(),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -262,13 +424,16 @@ class _EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 44, color: AppColors.slate400),
-          const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: AppColors.slate500)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 80),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 44, color: AppColors.slate400),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: AppColors.slate500)),
+          ],
+        ),
       ),
     );
   }
@@ -291,7 +456,10 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),
+            ElevatedButton(
+              onPressed: onRetry,
+              child: Text(LocaleKeys.library_retry.tr()),
+            ),
           ],
         ),
       ),

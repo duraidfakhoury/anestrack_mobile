@@ -108,10 +108,20 @@ import 'package:anestrack_mobile/modules/student/education/presentation/blocs/le
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/assessment_result_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/library/data/datasources/research_type_data_source.dart';
+import 'package:anestrack_mobile/modules/student/library/data/datasources/research_type_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/library/data/repositories/research_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/library/data/repositories/research_type_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/repositories/research_repository.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/repositories/research_type_repository.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/usecases/create_research_paper_usecase.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/usecases/get_research_paper_usecase.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/usecases/list_research_papers_usecase.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/usecases/list_research_types_usecase.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/blocs/publish_research_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_bloc.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_paper_detail_bloc.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_types_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -196,6 +206,9 @@ class ServicesLocator {
     sl.registerLazySingleton<ResearchDataSource>(
       () => ResearchDataSourceImpl(),
     );
+    sl.registerLazySingleton<ResearchTypeDataSource>(
+      () => ResearchTypeDataSourceImpl(),
+    );
 
     // Repositories
     sl.registerLazySingleton<AuthRepository>(
@@ -254,6 +267,9 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<ResearchRepository>(
       () => ResearchRepositoryImpl(sl<ResearchDataSource>()),
+    );
+    sl.registerLazySingleton<ResearchTypeRepository>(
+      () => ResearchTypeRepositoryImpl(sl<ResearchTypeDataSource>()),
     );
 
     // Use Cases
@@ -341,6 +357,15 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<ListResearchPapersUseCase>(
       () => ListResearchPapersUseCase(sl<ResearchRepository>()),
+    );
+    sl.registerLazySingleton<GetResearchPaperUseCase>(
+      () => GetResearchPaperUseCase(sl<ResearchRepository>()),
+    );
+    sl.registerLazySingleton<CreateResearchPaperUseCase>(
+      () => CreateResearchPaperUseCase(sl<ResearchRepository>()),
+    );
+    sl.registerLazySingleton<ListResearchTypesUseCase>(
+      () => ListResearchTypesUseCase(sl<ResearchTypeRepository>()),
     );
 
     // Blocs
@@ -456,6 +481,15 @@ class ServicesLocator {
     // Library (research)
     sl.registerFactory<ResearchBloc>(
       () => ResearchBloc(sl<ListResearchPapersUseCase>()),
+    );
+    sl.registerFactory<ResearchPaperDetailBloc>(
+      () => ResearchPaperDetailBloc(sl<GetResearchPaperUseCase>()),
+    );
+    sl.registerFactory<ResearchTypesBloc>(
+      () => ResearchTypesBloc(sl<ListResearchTypesUseCase>()),
+    );
+    sl.registerFactory<PublishResearchBloc>(
+      () => PublishResearchBloc(sl<CreateResearchPaperUseCase>()),
     );
 
     // Offline procedure sync — background trigger that drains the pending
