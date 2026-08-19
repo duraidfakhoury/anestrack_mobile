@@ -9,6 +9,7 @@ class Lecture extends Equatable {
   final List<String> mainGoals;
   final bool withTest;
   final String? createdAt;
+  final bool isActive;
 
   const Lecture({
     required this.id,
@@ -18,6 +19,7 @@ class Lecture extends Equatable {
     this.mainGoals = const [],
     this.withTest = false,
     this.createdAt,
+    this.isActive = true,
   });
 
   @override
@@ -29,5 +31,6 @@ class Lecture extends Equatable {
     mainGoals,
     withTest,
     createdAt,
+    isActive,
   ];
 }

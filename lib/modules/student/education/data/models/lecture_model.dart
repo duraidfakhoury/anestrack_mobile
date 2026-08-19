@@ -9,11 +9,12 @@ class LectureModel extends Lecture {
     super.mainGoals,
     super.withTest,
     super.createdAt,
+    super.isActive,
   });
 
   factory LectureModel.fromJson(Map<String, dynamic> json) {
     return LectureModel(
-      id: json['objectId'] as String? ?? '',
+      id: json['id'] as String? ?? json['objectId'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       contentType: json['contentType'] as String?,
@@ -23,6 +24,7 @@ class LectureModel extends Lecture {
           const [],
       withTest: json['withTest'] as bool? ?? false,
       createdAt: _parseDate(json['createdAt']),
+      isActive: json['isActive'] as bool? ?? true,
     );
   }
 

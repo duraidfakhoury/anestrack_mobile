@@ -14,6 +14,10 @@ import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/
 import 'package:anestrack_mobile/modules/common/settings/presentation/routes/settings_route.dart';
 import 'package:anestrack_mobile/modules/common/support/presentation/routes/support_route.dart';
 import 'package:anestrack_mobile/modules/student/curriculum/presentation/routes/curriculum_route.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_detail_route.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_quiz_route.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_quiz_result_route.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_assistant_route.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../modules/auth/presentation/routes/login_route.dart';
@@ -55,6 +59,10 @@ class AppRoutes {
       SettingsRoute.route,
       SupportRoute.route,
       CurriculumRoute.route,
+      LectureDetailRoute.route,
+      LectureQuizRoute.route,
+      LectureQuizResultRoute.route,
+      LectureAssistantRoute.route,
     ],
   );
 }

@@ -39,4 +39,20 @@ class LectureDataSourceImpl extends LectureDataSource {
       rethrow;
     }
   }
+
+  @override
+  Future<LectureModel> getLecture(String id) async {
+    try {
+      _logger.i('Fetching lecture $id');
+      final response = await NetworkHelper().get(
+        ApisUrls().getLecture,
+        data: {'id': id},
+      );
+      final body = _unwrap(response.data);
+      return LectureModel.fromJson(Map<String, dynamic>.from(body as Map));
+    } catch (e) {
+      _logger.e('Failed to fetch lecture $id: $e');
+      rethrow;
+    }
+  }
 }

@@ -19,4 +19,11 @@ class LectureRepositoryImpl extends LectureRepository {
       () => dataSource.listLectures(limit: limit, skip: skip),
     );
   }
+
+  @override
+  Future<Either<Failure, Lecture>> getLecture(String id) {
+    return AppErrorsHandler().defaultHandleEither(
+      () => dataSource.getLecture(id),
+    );
+  }
 }

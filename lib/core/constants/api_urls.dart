@@ -67,8 +67,13 @@ class ApisUrls {
   /// Announcements
   String get listAnnouncements => '$_baseApiUrl/functions/listAnnouncements';
 
-  /// Education — lectures
+  /// Education — lectures, AI summaries, comprehension quizzes
   String get listLectures => '$_baseApiUrl/functions/listLectures';
+  String get getLecture => '$_baseApiUrl/functions/getLecture';
+  String get generateAISummary => '$_baseApiUrl/functions/generateAISummary';
+  String get listLectureAssessments =>
+      '$_baseApiUrl/functions/listLectureAssessments';
+  String get submitAnswers => '$_baseApiUrl/functions/submitAnswers';
 
   /// Library — research papers
   String get listResearchPapers => '$_baseApiUrl/functions/listResearchPapers';

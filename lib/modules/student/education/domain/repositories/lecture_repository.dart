@@ -4,4 +4,5 @@ import 'package:anestrack_mobile/modules/student/education/domain/entities/lectu
 
 abstract class LectureRepository {
   Future<Either<Failure, List<Lecture>>> listLectures({int? limit, int? skip});
+  Future<Either<Failure, Lecture>> getLecture(String id);
 }

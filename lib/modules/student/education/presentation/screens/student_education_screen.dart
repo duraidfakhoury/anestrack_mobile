@@ -1,12 +1,23 @@
+import 'dart:async';
+
 import 'package:anestrack_mobile/core/constants/app_colors.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
+import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/entities/lecture.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lectures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_assistant_route.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_detail_route.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_quiz_route.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/widgets/lecture_ai_summary_sheet.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/widgets/lecture_widgets.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+const List<String?> _kContentTypeFilters = [null, 'Video', 'Document', 'Text'];
 
 class StudentEducationScreen extends StatefulWidget {
   const StudentEducationScreen({super.key});
@@ -19,6 +30,9 @@ class StudentEducationScreen extends StatefulWidget {
 class _StudentEducationScreenState extends State<StudentEducationScreen> {
   late final LecturesBloc _lecturesBloc;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+  String? _contentTypeFilter;
 
   @override
   void initState() {
@@ -29,6 +43,8 @@ class _StudentEducationScreenState extends State<StudentEducationScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _lecturesBloc.close();
@@ -42,6 +58,17 @@ class _StudentEducationScreenState extends State<StudentEducationScreen> {
     }
   }
 
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (value.trim().isEmpty) {
+        _lecturesBloc.add(ClearSearchEvent());
+      } else {
+        _lecturesBloc.add(SearchLecturesEvent(value));
+      }
+    });
+  }
+
   Future<void> _onRefresh() {
     _lecturesBloc.add(RefreshLecturesEvent());
     return _lecturesBloc.stream.firstWhere((state) => !state.isLoading);
@@ -53,7 +80,15 @@ class _StudentEducationScreenState extends State<StudentEducationScreen> {
       backgroundColor: AppColors.slate50,
       body: Column(
         children: [
-          _Header(title: 'nav.education'.tr(context: context)),
+          _Header(
+            title: LocaleKeys.nav_education.tr(),
+            searchController: _searchController,
+            onSearchChanged: _onSearchChanged,
+          ),
+          _ContentTypeChips(
+            selected: _contentTypeFilter,
+            onSelected: (value) => setState(() => _contentTypeFilter = value),
+          ),
           Expanded(
             child: BlocBuilder<LecturesBloc, BaseState<List<Lecture>>>(
               bloc: _lecturesBloc,
@@ -62,21 +97,26 @@ class _StudentEducationScreenState extends State<StudentEducationScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (state.isError) {
-                  return _ErrorView(
+                  return LectureErrorView(
                     message: state.errorMessage,
                     onRetry: () => _lecturesBloc.add(FetchLecturesEvent()),
                   );
                 }
-                final items = state.data ?? const [];
+                final allItems = state.data ?? const [];
+                final items = _contentTypeFilter == null
+                    ? allItems
+                    : allItems
+                        .where((l) => l.contentType == _contentTypeFilter)
+                        .toList();
                 if (items.isEmpty) {
                   return RefreshIndicator(
                     onRefresh: _onRefresh,
                     child: ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        _EmptyView(
+                      children: [
+                        LectureEmptyView(
                           icon: LucideIcons.graduationCap,
-                          message: 'لا توجد محاضرات متاحة',
+                          message: LocaleKeys.education_empty_lectures.tr(),
                         ),
                       ],
                     ),
@@ -117,8 +157,15 @@ class _StudentEducationScreenState extends State<StudentEducationScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.title});
+  const _Header({
+    required this.title,
+    required this.searchController,
+    required this.onSearchChanged,
+  });
+
   final String title;
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -144,12 +191,93 @@ class _Header extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'المحاضرات والمواد التعليمية',
-            style: TextStyle(color: AppColors.studentPrimaryLight, fontSize: 12),
+          const SizedBox(height: 14),
+          TextField(
+            controller: searchController,
+            onChanged: onSearchChanged,
+            style: const TextStyle(color: AppColors.slate900, fontSize: 13),
+            decoration: InputDecoration(
+              hintText: LocaleKeys.education_search_hint.tr(),
+              hintStyle: const TextStyle(color: AppColors.slate500, fontSize: 13),
+              prefixIcon: const Icon(LucideIcons.search, color: AppColors.slate500, size: 18),
+              filled: true,
+              fillColor: AppColors.white,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ContentTypeChips extends StatelessWidget {
+  const _ContentTypeChips({required this.selected, required this.onSelected});
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  String _label(String? value) {
+    switch (value) {
+      case null:
+        return LocaleKeys.education_filter_all.tr();
+      case 'Video':
+        return LocaleKeys.education_filter_video.tr();
+      case 'Document':
+        return LocaleKeys.education_filter_document.tr();
+      case 'Text':
+        return LocaleKeys.education_filter_text.tr();
+      default:
+        return value;
+    }
+  }
+
+  IconData? _icon(String? value) {
+    switch (value) {
+      case 'Video':
+        return LucideIcons.play;
+      case 'Document':
+        return LucideIcons.fileText;
+      case 'Text':
+        return LucideIcons.bookOpen;
+      default:
+        return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: _kContentTypeFilters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final value = _kContentTypeFilters[i];
+          final isSelected = value == selected;
+          final icon = _icon(value);
+          return ChoiceChip(
+            label: Text(_label(value)),
+            avatar: icon != null ? Icon(icon, size: 14) : null,
+            selected: isSelected,
+            onSelected: (_) => onSelected(value),
+            selectedColor: AppColors.studentPrimary,
+            backgroundColor: AppColors.white,
+            labelStyle: TextStyle(
+              color: isSelected ? AppColors.white : AppColors.slate700,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            side: BorderSide(
+              color: isSelected ? AppColors.studentPrimary : AppColors.gray200,
+            ),
+          );
+        },
       ),
     );
   }
@@ -161,159 +289,178 @@ class _LectureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, color) = _visualFor(lecture.contentType);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
+    final (icon, color) = lectureContentTypeVisual(lecture.contentType);
+    final typeLabel = lectureContentTypeLabel(lecture.contentType);
+    final dateLabel = lecture.createdAt != null
+        ? DateFormat.yMMMd(context.locale.languageCode).format(
+            DateTime.tryParse(lecture.createdAt!) ?? DateTime.now(),
+          )
+        : null;
+
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gray100),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 20),
+        onTap: () => context.push(
+          '${LectureDetailRoute.name}/${lecture.id}',
+          extra: lecture,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.gray100),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.shadowLight,
+                blurRadius: 8,
+                offset: Offset(0, 3),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  lecture.title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.slate900,
-                  ),
-                ),
-              ),
-              if (lecture.withTest)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.amber50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.amber200),
-                  ),
-                  child: const Text(
-                    'اختبار',
-                    style: TextStyle(
-                      color: AppColors.amber700,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
             ],
           ),
-          if (lecture.description.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              lecture.description,
-              style: const TextStyle(fontSize: 12, color: AppColors.slate600),
-            ),
-          ],
-          if (lecture.mainGoals.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ...lecture.mainGoals.map(
-              (goal) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      LucideIcons.check,
-                      size: 14,
-                      color: AppColors.studentPrimary,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        goal,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.slate600,
-                        ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      lecture.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.slate900,
                       ),
                     ),
+                  ),
+                ],
+              ),
+              if (typeLabel.isNotEmpty || dateLabel != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (typeLabel.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          typeLabel,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    if (typeLabel.isNotEmpty && dateLabel != null)
+                      const SizedBox(width: 8),
+                    if (dateLabel != null)
+                      Text(
+                        dateLabel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.slate500,
+                        ),
+                      ),
                   ],
                 ),
+              ],
+              if (lecture.description.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  lecture.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: AppColors.slate600),
+                ),
+              ],
+              if (lecture.mainGoals.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                LectureMainGoalsList(goals: lecture.mainGoals),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.blue600,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      onPressed: () => showLectureAiSummarySheet(
+                        context,
+                        lectureId: lecture.id,
+                        lectureTitle: lecture.title,
+                      ),
+                      icon: const Icon(LucideIcons.fileText, size: 14),
+                      label: Text(
+                        LocaleKeys.education_ai_summary.tr(),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.purple600,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      onPressed: () => context.push(
+                        '${LectureAssistantRoute.name}/${lecture.id}',
+                        extra: lecture,
+                      ),
+                      icon: const Icon(LucideIcons.sparkles, size: 14),
+                      label: Text(
+                        LocaleKeys.education_ask_assistant.tr(),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  (IconData, Color) _visualFor(String? contentType) {
-    switch (contentType) {
-      case 'Video':
-        return (LucideIcons.play, AppColors.red600);
-      case 'Document':
-        return (LucideIcons.fileText, AppColors.blue600);
-      case 'Text':
-        return (LucideIcons.bookOpen, AppColors.studentPrimary);
-      default:
-        return (LucideIcons.graduationCap, AppColors.studentPrimary);
-    }
-  }
-}
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 44, color: AppColors.slate400),
-          const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: AppColors.slate500)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(LucideIcons.circleAlert, size: 44, color: AppColors.red600),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),
-          ],
+              if (lecture.withTest) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.studentPrimary,
+                      side: const BorderSide(color: AppColors.studentPrimary),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () => context.push(
+                      '${LectureQuizRoute.name}/${lecture.id}',
+                    ),
+                    icon: const Icon(LucideIcons.clipboardCheck, size: 14),
+                    label: Text(
+                      LocaleKeys.education_start_quiz.tr(),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
