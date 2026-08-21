@@ -11,6 +11,8 @@ import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs
 import 'package:anestrack_mobile/modules/common/notifications/presentation/routes/notifications_route.dart';
 import 'package:anestrack_mobile/modules/common/profile/domain/entities/current_user.dart';
 import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
+import 'package:anestrack_mobile/modules/student/home/domain/entities/student_dashboard.dart';
+import 'package:anestrack_mobile/modules/student/home/presentation/blocs/student_dashboard_bloc/student_dashboard_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_state.dart';
@@ -23,32 +25,29 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
 
-  // Procedure-derived stat cards (belong to the main procedure flow).
-  static const List<Map<String, dynamic>> _statsCards = [
+  // Presentation metadata for the procedure-derived stat cards; the values
+  // themselves come from StudentDashboardBloc (getStudentDashboard).
+  static const List<Map<String, dynamic>> _statsCardsMeta = [
     {
       'label': 'إجمالي الإجراءات المسجلة',
-      'value': '47',
       'icon': LucideIcons.fileCheck,
       'gradient': [Color(0xFF14B8A6), Color(0xFF0D9488)],
     },
     {
       'label': 'حالة التقييم',
-      'value': '38',
-      'subtitle': 'ممتاز: 22 | جيد: 12 | مقبول: 4',
       'icon': LucideIcons.award,
       'gradient': [Color(0xFF3B82F6), Color(0xFF2563EB)],
     },
     {
-      'label': 'نتائج الاختبارات',
-      'value': '85%',
-      'subtitle': 'متوسط الدرجات',
+      'label': 'متوسط درجة التقييم',
       'icon': LucideIcons.trendingUp,
       'gradient': [Color(0xFF06B6D4), Color(0xFF0891B2)],
     },
   ];
 
-  static const int _currentYear = 2;
-  static const int _loggedProcedures = 33;
+  static const int _fallbackYear = 2;
+  // The curriculum's required-procedures quota isn't part of
+  // getStudentDashboard yet; kept static until that's exposed by the backend.
   static const int _requiredProcedures = 300;
 
   @override
@@ -61,6 +60,10 @@ class StudentHomeScreen extends StatelessWidget {
         BlocProvider(
           create: (_) =>
               sl<AnnouncementsBloc>()..add(FetchAnnouncementsEvent()),
+        ),
+        BlocProvider(
+          create: (_) =>
+              sl<StudentDashboardBloc>()..add(FetchStudentDashboardEvent()),
         ),
         // UnreadCountBloc is a singleton owned by the service locator (see
         // service_locator.dart), so it must be provided via `.value` rather
@@ -83,10 +86,6 @@ class StudentHomeScreen extends StatelessWidget {
 
 class _StudentHomeView extends StatelessWidget {
   const _StudentHomeView();
-
-  double get _progressPercentage =>
-      StudentHomeScreen._loggedProcedures /
-      StudentHomeScreen._requiredProcedures;
 
   @override
   Widget build(BuildContext context) {
@@ -168,18 +167,66 @@ class _StudentHomeView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            height: 140,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: StudentHomeScreen._statsCards.length,
-              itemBuilder: (context, idx) =>
-                  _statCard(StudentHomeScreen._statsCards[idx]),
-            ),
+          BlocBuilder<StudentDashboardBloc, StudentDashboardState>(
+            builder: (context, state) {
+              final cards = _statsCardValues(state.data);
+              return SizedBox(
+                height: 140,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: cards.length,
+                  itemBuilder: (context, idx) => _statCard(cards[idx]),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
+  }
+
+  /// Merges the static card metadata with live values from
+  /// `getStudentDashboard`; `stats == null` while loading or on error.
+  List<Map<String, dynamic>> _statsCardValues(StudentDashboardStats? stats) {
+    final meta = StudentHomeScreen._statsCardsMeta;
+    if (stats == null) {
+      return [
+        for (final card in meta) {...card, 'value': '...'},
+      ];
+    }
+
+    final eval = stats.evaluation;
+    return [
+      {...meta[0], 'value': '${stats.totalProcedures}'},
+      {
+        ...meta[1],
+        'value': '${eval.totalEvaluated}',
+        'subtitle':
+            'ممتاز: ${eval.excellentCount} | جيد: ${eval.goodCount} | مقبول: ${eval.acceptableCount}',
+      },
+      {
+        ...meta[2],
+        'value': eval.averageScore.toStringAsFixed(1),
+        'subtitle': _performanceLabel(eval.performance),
+      },
+    ];
+  }
+
+  String _performanceLabel(String performance) {
+    switch (performance) {
+      case 'Excellent':
+        return 'ممتاز';
+      case 'Good':
+        return 'جيد';
+      case 'Acceptable':
+        return 'مقبول';
+      case 'Poor':
+        return 'ضعيف';
+      case 'Not Evaluated':
+        return 'لم يتم التقييم بعد';
+      default:
+        return performance;
+    }
   }
 
   Widget _pendingBanner(BuildContext context) {
@@ -400,69 +447,85 @@ class _StudentHomeView extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: BlocBuilder<StudentDashboardBloc, StudentDashboardState>(
+            builder: (context, dashboardState) {
+              final logged = dashboardState.data?.totalProcedures ?? 0;
+              final percentage = (logged / StudentHomeScreen._requiredProcedures)
+                  .clamp(0.0, 1.0);
+              return BlocBuilder<CurrentUserBloc, BaseState<CurrentUser>>(
+                builder: (context, userState) {
+                  final year =
+                      userState.data?.yearCode ?? StudentHomeScreen._fallbackYear;
+                  return Column(
                     children: [
-                      Text(
-                        'تقدم السنة ${StudentHomeScreen._currentYear}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'تقدم السنة $year',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Text(
+                                'انقر لعرض الخطة الدراسية الكاملة',
+                                style: TextStyle(
+                                  color: Color(0xFFE0E7FF),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Icon(
+                            LucideIcons.trendingUp,
+                            color: Color(0xFFC7D2FE),
+                            size: 24,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: percentage,
+                          minHeight: 10,
+                          backgroundColor: Colors.black.withValues(alpha: 0.2),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFFBBF24),
+                          ),
                         ),
                       ),
-                      Text(
-                        'انقر لعرض الخطة الدراسية الكاملة',
-                        style: TextStyle(
-                          color: Color(0xFFE0E7FF),
-                          fontSize: 13,
-                        ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${(percentage * 100).round()}%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'المسجل: $logged / المطلوب: ${StudentHomeScreen._requiredProcedures}',
+                            style: const TextStyle(
+                              color: Color(0xFFE0E7FF),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                  const Icon(
-                    LucideIcons.trendingUp,
-                    color: Color(0xFFC7D2FE),
-                    size: 24,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: _progressPercentage,
-                  minHeight: 10,
-                  backgroundColor: Colors.black.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFFBBF24),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${(_progressPercentage * 100).round()}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Text(
-                    'المسجل: ${StudentHomeScreen._loggedProcedures} / المطلوب: ${StudentHomeScreen._requiredProcedures}',
-                    style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
+                  );
+                },
+              );
+            },
           ),
         ),
       ),

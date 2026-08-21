@@ -41,6 +41,12 @@ import 'package:anestrack_mobile/modules/supervisor/home/data/repositories/super
 import 'package:anestrack_mobile/modules/supervisor/home/domain/repositories/supervisor_dashboard_repository.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/domain/usecases/get_supervisor_dashboard_usecase.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/presentation/blocs/dashboard_bloc/dashboard_bloc.dart';
+import 'package:anestrack_mobile/modules/student/home/data/datasources/student_dashboard_data_source.dart';
+import 'package:anestrack_mobile/modules/student/home/data/datasources/student_dashboard_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/home/data/repositories/student_dashboard_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/home/domain/repositories/student_dashboard_repository.dart';
+import 'package:anestrack_mobile/modules/student/home/domain/usecases/get_student_dashboard_usecase.dart';
+import 'package:anestrack_mobile/modules/student/home/presentation/blocs/student_dashboard_bloc/student_dashboard_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
@@ -166,6 +172,11 @@ class ServicesLocator {
     // Student Data Sources
     sl.registerLazySingleton<StudentDataSource>(() => StudentDataSourceImpl());
 
+    // Student Dashboard Data Source
+    sl.registerLazySingleton<StudentDashboardDataSource>(
+      () => StudentDashboardDataSourceImpl(),
+    );
+
     // Supervisor Dashboard Data Source
     sl.registerLazySingleton<SupervisorDashboardDataSource>(
       () => SupervisorDashboardDataSourceImpl(),
@@ -244,6 +255,9 @@ class ServicesLocator {
     sl.registerLazySingleton<SupervisorDashboardRepository>(
       () => SupervisorDashboardRepositoryImpl(sl<SupervisorDashboardDataSource>()),
     );
+    sl.registerLazySingleton<StudentDashboardRepository>(
+      () => StudentDashboardRepositoryImpl(sl<StudentDashboardDataSource>()),
+    );
     sl.registerLazySingleton<ProfileRepository>(
       () => ProfileRepositoryImpl(sl<ProfileDataSource>()),
     );
@@ -318,6 +332,9 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<GetSupervisorDashboardUseCase>(
       () => GetSupervisorDashboardUseCase(sl<SupervisorDashboardRepository>()),
+    );
+    sl.registerLazySingleton<GetStudentDashboardUseCase>(
+      () => GetStudentDashboardUseCase(sl<StudentDashboardRepository>()),
     );
     sl.registerLazySingleton<GetCurrentUserUseCase>(
       () => GetCurrentUserUseCase(sl<ProfileRepository>()),
@@ -430,6 +447,11 @@ class ServicesLocator {
     // Supervisor home dashboard bloc
     sl.registerFactory<DashboardBloc>(
       () => DashboardBloc(sl<GetSupervisorDashboardUseCase>()),
+    );
+
+    // Student home dashboard bloc
+    sl.registerFactory<StudentDashboardBloc>(
+      () => StudentDashboardBloc(sl<GetStudentDashboardUseCase>()),
     );
 
     // Profile

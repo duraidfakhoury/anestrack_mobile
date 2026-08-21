@@ -53,6 +53,8 @@ class ApisUrls {
   /// Statistics
   String get getSupervisorDashboard =>
       '$_baseApiUrl/functions/getSupervisorDashboard';
+  String get getStudentDashboard =>
+      '$_baseApiUrl/functions/getStudentDashboard';
 
   /// Complaints
   String get createComplaint => '$_baseApiUrl/functions/createComplaint';
