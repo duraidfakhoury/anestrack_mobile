@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:anestrack_mobile/core/constants/app_colors.dart';
 import 'package:anestrack_mobile/generated/locale_keys.g.dart';
-import 'package:dio/dio.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/utils/pdf_bytes.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -24,19 +24,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   @override
   void initState() {
     super.initState();
-    _bytesFuture = _download();
-  }
-
-  Future<Uint8List> _download() async {
-    final response = await Dio().get<List<int>>(
-      widget.url,
-      options: Options(responseType: ResponseType.bytes),
-    );
-    return Uint8List.fromList(response.data ?? const []);
+    _bytesFuture = fetchPdfBytes(widget.url);
   }
 
   void _retry() {
-    setState(() => _bytesFuture = _download());
+    setState(() => _bytesFuture = fetchPdfBytes(widget.url));
   }
 
   @override

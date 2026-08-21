@@ -1,18 +1,19 @@
 import 'package:anestrack_mobile/core/constants/app_colors.dart';
+import 'package:anestrack_mobile/core/core_components/show_toast.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/entities/research_paper.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_bloc.dart';
-import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_args.dart';
-import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_route.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/routes/publish_research_route.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/routes/research_paper_detail_route.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/utils/pdf_bytes.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:printing/printing.dart';
 
 class StudentLibraryScreen extends StatefulWidget {
   const StudentLibraryScreen({super.key});
@@ -272,6 +273,15 @@ class _PaperCard extends StatelessWidget {
     return DateFormat('yyyy/MM/dd').format(parsed);
   }
 
+  Future<void> _downloadPdf(ResearchPaper paper) async {
+    try {
+      final bytes = await fetchPdfBytes(paper.fileUrl!);
+      await Printing.sharePdf(bytes: bytes, filename: '${paper.title}.pdf');
+    } catch (_) {
+      showToast(LocaleKeys.library_pdf_viewer_error.tr());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -371,13 +381,7 @@ class _PaperCard extends StatelessWidget {
                   ),
                   onPressed: paper.fileUrl == null
                       ? null
-                      : () => context.push(
-                          PdfViewerRoute.name,
-                          extra: PdfViewerArgs(
-                            title: paper.title,
-                            url: paper.fileUrl!,
-                          ),
-                        ),
+                      : () => _downloadPdf(paper),
                   icon: const Icon(LucideIcons.download, size: 14),
                   label: Text(
                     LocaleKeys.library_download_pdf.tr(),
