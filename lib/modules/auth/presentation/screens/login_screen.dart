@@ -66,7 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       constraints: const BoxConstraints(maxWidth: 400),
                       child: Column(
                         children: [
-                          const LoginLanguageToggle(),
                           const LoginLogoSection(),
                           const SizedBox(height: 32),
                           LoginCardContainer(

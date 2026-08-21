@@ -40,7 +40,8 @@ void main() async {
   runApp(
     EasyLocalization(
       supportedLocales: AppLocale().supportedLocales,
-      fallbackLocale: AppLocale().english,
+      startLocale: AppLocale().arabic,
+      fallbackLocale: AppLocale().arabic,
       path: 'resources/langs',
       assetLoader: const CodegenLoader(),
       child: const MyApp(),

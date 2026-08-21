@@ -1,27 +1,5 @@
-import 'package:anestrack_mobile/core/enum/app_languages.dart';
-import 'package:anestrack_mobile/core/translations/app_locale.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-class LoginLanguageToggle extends StatelessWidget {
-  const LoginLanguageToggle({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topRight,
-      child: IconButton(
-        onPressed: () async {
-          final next = AppLocale().isArabic(context)
-              ? AppLanguages.english
-              : AppLanguages.arabic;
-          AppLocale().changeLanguage(context, next);
-        },
-        icon: const Icon(LucideIcons.languages, color: Colors.white70),
-      ),
-    );
-  }
-}
 
 class LoginLogoSection extends StatelessWidget {
   const LoginLogoSection({super.key});
