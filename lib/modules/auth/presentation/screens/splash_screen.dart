@@ -6,6 +6,7 @@ import 'package:anestrack_mobile/modules/auth/data/models/user_model.dart';
 import 'package:anestrack_mobile/modules/auth/presentation/routes/login_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/presentation/routes/supervisor_home_route.dart';
 import 'package:anestrack_mobile/modules/student/home/presentation/routes/student_home_route.dart';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -38,10 +39,13 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.asset("assets/images/logo.png", scale: 0.9.h / 1),
+              Image.asset(
+                "assets/images/icon_appicon_1024.png",
+                scale: 0.9.h / 1,
+              ),
               const SizedBox(height: 20),
               Text(
-                "anestrack mobile",
+                'app.name'.tr(context: context),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: AppColors.textPrimary,
                   letterSpacing: 6,
