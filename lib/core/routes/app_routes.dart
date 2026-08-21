@@ -21,6 +21,10 @@ import 'package:anestrack_mobile/modules/student/education/presentation/routes/l
 import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_route.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/routes/publish_research_route.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/routes/research_paper_detail_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/routes/create_lecture_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/routes/create_announcement_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/routes/supervisor_research_library_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/routes/supervisor_research_paper_review_route.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../modules/auth/presentation/routes/login_route.dart';
@@ -69,6 +73,10 @@ class AppRoutes {
       ResearchPaperDetailRoute.route,
       PublishResearchRoute.route,
       PdfViewerRoute.route,
+      CreateLectureRoute.route,
+      CreateAnnouncementRoute.route,
+      SupervisorResearchLibraryRoute.route,
+      SupervisorResearchPaperReviewRoute.route,
     ],
   );
 }

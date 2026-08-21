@@ -2,14 +2,14 @@ import 'package:dartz/dartz.dart';
 import 'package:anestrack_mobile/core/network/exeptions/failure.dart';
 import 'package:anestrack_mobile/modules/common/announcements/domain/entities/announcement.dart';
 import 'package:anestrack_mobile/modules/common/announcements/domain/parameters/create_announcement_parameters.dart';
+import 'package:anestrack_mobile/modules/common/announcements/domain/repositories/announcement_repository.dart';
 
-abstract class AnnouncementRepository {
-  Future<Either<Failure, List<Announcement>>> listAnnouncements({
-    int? limit,
-    int? skip,
-  });
+class CreateAnnouncementUseCase {
+  final AnnouncementRepository repository;
 
-  Future<Either<Failure, Announcement>> createAnnouncement(
+  CreateAnnouncementUseCase(this.repository);
+
+  Future<Either<Failure, Announcement>> call(
     CreateAnnouncementParameters parameters,
-  );
+  ) => repository.createAnnouncement(parameters);
 }

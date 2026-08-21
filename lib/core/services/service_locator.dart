@@ -89,7 +89,9 @@ import 'package:anestrack_mobile/modules/common/announcements/data/datasources/a
 import 'package:anestrack_mobile/modules/common/announcements/data/repositories/announcement_repository_impl.dart';
 import 'package:anestrack_mobile/modules/common/announcements/domain/repositories/announcement_repository.dart';
 import 'package:anestrack_mobile/modules/common/announcements/domain/usecases/list_announcements_usecase.dart';
+import 'package:anestrack_mobile/modules/common/announcements/domain/usecases/create_announcement_usecase.dart';
 import 'package:anestrack_mobile/modules/common/announcements/presentation/blocs/announcements_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/blocs/create_announcement_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_data_source.dart';
 import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/education/data/datasources/ai_summary_data_source.dart';
@@ -104,6 +106,7 @@ import 'package:anestrack_mobile/modules/student/education/domain/repositories/a
 import 'package:anestrack_mobile/modules/student/education/domain/repositories/lecture_assessment_repository.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/list_lectures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/get_lecture_usecase.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/usecases/create_lecture_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/generate_ai_summary_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/get_lecture_assessment_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/submit_answers_usecase.dart';
@@ -112,6 +115,7 @@ import 'package:anestrack_mobile/modules/student/education/presentation/blocs/le
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/ai_summary_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_assessment_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/assessment_result_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/blocs/create_lecture_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_type_data_source.dart';
@@ -124,10 +128,14 @@ import 'package:anestrack_mobile/modules/student/library/domain/usecases/create_
 import 'package:anestrack_mobile/modules/student/library/domain/usecases/get_research_paper_usecase.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/usecases/list_research_papers_usecase.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/usecases/list_research_types_usecase.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/usecases/list_research_paper_comments_usecase.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/usecases/create_research_paper_comment_usecase.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/publish_research_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_paper_detail_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_types_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/blocs/research_paper_comments_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/blocs/recent_activity_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -357,11 +365,17 @@ class ServicesLocator {
     sl.registerLazySingleton<ListAnnouncementsUseCase>(
       () => ListAnnouncementsUseCase(sl<AnnouncementRepository>()),
     );
+    sl.registerLazySingleton<CreateAnnouncementUseCase>(
+      () => CreateAnnouncementUseCase(sl<AnnouncementRepository>()),
+    );
     sl.registerLazySingleton<ListLecturesUseCase>(
       () => ListLecturesUseCase(sl<LectureRepository>()),
     );
     sl.registerLazySingleton<GetLectureUseCase>(
       () => GetLectureUseCase(sl<LectureRepository>()),
+    );
+    sl.registerLazySingleton<CreateLectureUseCase>(
+      () => CreateLectureUseCase(sl<LectureRepository>()),
     );
     sl.registerLazySingleton<GenerateAiSummaryUseCase>(
       () => GenerateAiSummaryUseCase(sl<AiSummaryRepository>()),
@@ -380,6 +394,12 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<CreateResearchPaperUseCase>(
       () => CreateResearchPaperUseCase(sl<ResearchRepository>()),
+    );
+    sl.registerLazySingleton<ListResearchPaperCommentsUseCase>(
+      () => ListResearchPaperCommentsUseCase(sl<ResearchRepository>()),
+    );
+    sl.registerLazySingleton<CreateResearchPaperCommentUseCase>(
+      () => CreateResearchPaperCommentUseCase(sl<ResearchRepository>()),
     );
     sl.registerLazySingleton<ListResearchTypesUseCase>(
       () => ListResearchTypesUseCase(sl<ResearchTypeRepository>()),
@@ -479,6 +499,9 @@ class ServicesLocator {
     );
 
     // Announcements
+    sl.registerFactory<CreateAnnouncementBloc>(
+      () => CreateAnnouncementBloc(sl<CreateAnnouncementUseCase>()),
+    );
     sl.registerFactory<AnnouncementsBloc>(
       () => AnnouncementsBloc(sl<ListAnnouncementsUseCase>()),
     );
@@ -486,6 +509,9 @@ class ServicesLocator {
     // Education (lectures)
     sl.registerFactory<LecturesBloc>(
       () => LecturesBloc(sl<ListLecturesUseCase>()),
+    );
+    sl.registerFactory<CreateLectureBloc>(
+      () => CreateLectureBloc(sl<CreateLectureUseCase>()),
     );
     sl.registerFactory<LectureDetailBloc>(
       () => LectureDetailBloc(sl<GetLectureUseCase>()),
@@ -512,6 +538,19 @@ class ServicesLocator {
     );
     sl.registerFactory<PublishResearchBloc>(
       () => PublishResearchBloc(sl<CreateResearchPaperUseCase>()),
+    );
+    sl.registerFactory<ResearchPaperCommentsBloc>(
+      () => ResearchPaperCommentsBloc(
+        sl<ListResearchPaperCommentsUseCase>(),
+        sl<CreateResearchPaperCommentUseCase>(),
+      ),
+    );
+    sl.registerFactory<RecentActivityBloc>(
+      () => RecentActivityBloc(
+        sl<ListLecturesUseCase>(),
+        sl<ListResearchPapersUseCase>(),
+        sl<ListAnnouncementsUseCase>(),
+      ),
     );
 
     // Offline procedure sync — background trigger that drains the pending

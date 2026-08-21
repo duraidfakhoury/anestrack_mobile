@@ -68,10 +68,12 @@ class ApisUrls {
 
   /// Announcements
   String get listAnnouncements => '$_baseApiUrl/functions/listAnnouncements';
+  String get createAnnouncement => '$_baseApiUrl/functions/createAnnouncement';
 
   /// Education — lectures, AI summaries, comprehension quizzes
   String get listLectures => '$_baseApiUrl/functions/listLectures';
   String get getLecture => '$_baseApiUrl/functions/getLecture';
+  String get createLecture => '$_baseApiUrl/functions/createLecture';
   String get generateAISummary => '$_baseApiUrl/functions/generateAISummary';
   String get listLectureAssessments =>
       '$_baseApiUrl/functions/listLectureAssessments';
@@ -83,4 +85,8 @@ class ApisUrls {
   String get createResearchPaper =>
       '$_baseApiUrl/functions/createResearchPaper';
   String get listResearchTypes => '$_baseApiUrl/functions/listResearchTypes';
+  String get listResearchPaperComments =>
+      '$_baseApiUrl/functions/listResearchPaperComments';
+  String get createResearchPaperComment =>
+      '$_baseApiUrl/functions/createResearchPaperComment';
 }
