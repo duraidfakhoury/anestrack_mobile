@@ -5,10 +5,11 @@ class CreateLectureParameters extends Equatable {
   final String title;
   final String description;
 
-  /// 'Video' | 'Document' | 'Link'.
+  /// 'Video' | 'Document' | 'Text'.
   final String contentType;
 
-  /// A plain URL (Video/Link) or a base64 data URI (Document).
+  /// A plain URL (Video), a base64 data URI (Document), or the lecture's
+  /// raw text content (Text).
   final String contentUrl;
 
   const CreateLectureParameters({

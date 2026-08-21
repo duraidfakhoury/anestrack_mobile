@@ -108,7 +108,7 @@ abstract class  LocaleKeys {
   static const education_filter_all = 'education.filter_all';
   static const education_filter_video = 'education.filter_video';
   static const education_filter_document = 'education.filter_document';
-  static const education_filter_link = 'education.filter_link';
+  static const education_filter_text = 'education.filter_text';
   static const education_empty_lectures = 'education.empty_lectures';
   static const education_retry = 'education.retry';
   static const education_ai_summary = 'education.ai_summary';
@@ -141,6 +141,8 @@ abstract class  LocaleKeys {
   static const library_authors_label = 'library.authors_label';
   static const library_type_label = 'library.type_label';
   static const library_published_at_label = 'library.published_at_label';
+  static const library_notes_title = 'library.notes_title';
+  static const library_empty_notes = 'library.empty_notes';
   static const library_open_pdf = 'library.open_pdf';
   static const library_pdf_viewer_loading = 'library.pdf_viewer_loading';
   static const library_pdf_viewer_error = 'library.pdf_viewer_error';
@@ -235,8 +237,10 @@ abstract class  LocaleKeys {
   static const supervisor_academic_create_lecture_title = 'supervisor_academic.create_lecture_title';
   static const supervisor_academic_field_content_type = 'supervisor_academic.field_content_type';
   static const supervisor_academic_content_type_hint = 'supervisor_academic.content_type_hint';
-  static const supervisor_academic_field_content_url = 'supervisor_academic.field_content_url';
-  static const supervisor_academic_field_content_url_hint = 'supervisor_academic.field_content_url_hint';
+  static const supervisor_academic_field_video_url = 'supervisor_academic.field_video_url';
+  static const supervisor_academic_field_video_url_hint = 'supervisor_academic.field_video_url_hint';
+  static const supervisor_academic_field_lecture_text = 'supervisor_academic.field_lecture_text';
+  static const supervisor_academic_field_lecture_text_hint = 'supervisor_academic.field_lecture_text_hint';
   static const supervisor_academic_field_document_file = 'supervisor_academic.field_document_file';
   static const supervisor_academic_pick_document = 'supervisor_academic.pick_document';
   static const supervisor_academic_replace_file = 'supervisor_academic.replace_file';

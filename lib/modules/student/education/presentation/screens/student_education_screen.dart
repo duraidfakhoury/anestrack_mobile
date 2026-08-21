@@ -17,7 +17,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-const List<String?> _kContentTypeFilters = [null, 'Video', 'Document', 'Link'];
+const List<String?> _kContentTypeFilters = [null, 'Video', 'Document', 'Text'];
 
 class StudentEducationScreen extends StatefulWidget {
   const StudentEducationScreen({super.key});
@@ -228,8 +228,8 @@ class _ContentTypeChips extends StatelessWidget {
         return LocaleKeys.education_filter_video.tr();
       case 'Document':
         return LocaleKeys.education_filter_document.tr();
-      case 'Link':
-        return LocaleKeys.education_filter_link.tr();
+      case 'Text':
+        return LocaleKeys.education_filter_text.tr();
       default:
         return value;
     }
@@ -241,8 +241,8 @@ class _ContentTypeChips extends StatelessWidget {
         return LucideIcons.play;
       case 'Document':
         return LucideIcons.fileText;
-      case 'Link':
-        return LucideIcons.link;
+      case 'Text':
+        return LucideIcons.alignLeft;
       default:
         return null;
     }

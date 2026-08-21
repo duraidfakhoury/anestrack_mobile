@@ -134,7 +134,7 @@ import 'package:anestrack_mobile/modules/student/library/presentation/blocs/publ
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_paper_detail_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_types_bloc.dart';
-import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/blocs/research_paper_comments_bloc.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_paper_comments_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/blocs/recent_activity_bloc.dart';
 
 final sl = GetIt.instance;

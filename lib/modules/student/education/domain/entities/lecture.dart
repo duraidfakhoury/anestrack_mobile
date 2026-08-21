@@ -5,7 +5,7 @@ class Lecture extends Equatable {
   final String id;
   final String title;
   final String description;
-  final String? contentType; // Video | Document | Link
+  final String? contentType; // Video | Document | Text
   final List<String> mainGoals;
   final bool withTest;
   final String? createdAt;

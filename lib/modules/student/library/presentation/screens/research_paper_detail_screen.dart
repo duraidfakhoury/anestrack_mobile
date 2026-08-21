@@ -1,8 +1,11 @@
 import 'package:anestrack_mobile/core/constants/app_colors.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
+import 'package:anestrack_mobile/core/utils/relative_time.dart';
 import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/library/domain/entities/research_paper.dart';
+import 'package:anestrack_mobile/modules/student/library/domain/entities/research_paper_comment.dart';
+import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_paper_comments_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/blocs/research_paper_detail_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_args.dart';
 import 'package:anestrack_mobile/modules/student/library/presentation/routes/pdf_viewer_route.dart';
@@ -30,17 +33,21 @@ class ResearchPaperDetailScreen extends StatefulWidget {
 class _ResearchPaperDetailScreenState
     extends State<ResearchPaperDetailScreen> {
   late final ResearchPaperDetailBloc _bloc;
+  late final ResearchPaperCommentsBloc _commentsBloc;
 
   @override
   void initState() {
     super.initState();
     _bloc = sl<ResearchPaperDetailBloc>()
       ..add(FetchResearchPaperDetailEvent(widget.paperId));
+    _commentsBloc = sl<ResearchPaperCommentsBloc>()
+      ..add(FetchResearchPaperCommentsEvent(widget.paperId));
   }
 
   @override
   void dispose() {
     _bloc.close();
+    _commentsBloc.close();
     super.dispose();
   }
 
@@ -65,7 +72,7 @@ class _ResearchPaperDetailScreenState
             }
             return const Center(child: CircularProgressIndicator());
           }
-          return _DetailBody(paper: paper);
+          return _DetailBody(paper: paper, commentsBloc: _commentsBloc);
         },
       ),
     );
@@ -73,8 +80,9 @@ class _ResearchPaperDetailScreenState
 }
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.paper});
+  const _DetailBody({required this.paper, required this.commentsBloc});
   final ResearchPaper paper;
+  final ResearchPaperCommentsBloc commentsBloc;
 
   String? get _formattedDate {
     final raw = paper.publishedAt;
@@ -213,10 +221,91 @@ class _DetailBody extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 28),
+              Text(
+                LocaleKeys.library_notes_title.tr(),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.slate900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              BlocBuilder<ResearchPaperCommentsBloc, ResearchPaperCommentsState>(
+                bloc: commentsBloc,
+                builder: (context, state) {
+                  if (state.isLoading || state.isInit) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final comments = state.data ?? const [];
+                  if (comments.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Text(
+                        LocaleKeys.library_empty_notes.tr(),
+                        style: const TextStyle(color: AppColors.slate400),
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: comments.map((c) => _CommentTile(comment: c)).toList(),
+                  );
+                },
+              ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CommentTile extends StatelessWidget {
+  const _CommentTile({required this.comment});
+  final ResearchPaperComment comment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gray100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  comment.authorName,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.studentPrimary,
+                  ),
+                ),
+              ),
+              if (comment.createdAt != null)
+                Text(
+                  formatRelative(comment.createdAt!),
+                  style: const TextStyle(fontSize: 10, color: AppColors.slate400),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            comment.content,
+            style: const TextStyle(fontSize: 13, color: AppColors.slate700),
+          ),
+        ],
+      ),
     );
   }
 }

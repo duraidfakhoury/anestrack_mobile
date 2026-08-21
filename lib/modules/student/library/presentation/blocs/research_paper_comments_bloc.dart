@@ -21,6 +21,8 @@ class SubmitResearchPaperCommentEvent extends ResearchPaperCommentsEvent {
 
 typedef ResearchPaperCommentsState = BaseState<List<ResearchPaperComment>>;
 
+/// Shared by both the student paper-detail screen (read-only) and the
+/// supervisor review screen (read + add note).
 class ResearchPaperCommentsBloc
     extends Bloc<ResearchPaperCommentsEvent, ResearchPaperCommentsState> {
   final ListResearchPaperCommentsUseCase listUseCase;

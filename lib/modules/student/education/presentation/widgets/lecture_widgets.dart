@@ -4,15 +4,15 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-/// Icon + accent color for a lecture's `contentType` (Video | Document | Link).
+/// Icon + accent color for a lecture's `contentType` (Video | Document | Text).
 (IconData, Color) lectureContentTypeVisual(String? contentType) {
   switch (contentType) {
     case 'Video':
       return (LucideIcons.play, AppColors.red600);
     case 'Document':
       return (LucideIcons.fileText, AppColors.blue600);
-    case 'Link':
-      return (LucideIcons.link, AppColors.studentPrimary);
+    case 'Text':
+      return (LucideIcons.alignLeft, AppColors.studentPrimary);
     default:
       return (LucideIcons.graduationCap, AppColors.studentPrimary);
   }
@@ -24,8 +24,8 @@ String lectureContentTypeLabel(String? contentType) {
       return LocaleKeys.education_filter_video.tr();
     case 'Document':
       return LocaleKeys.education_filter_document.tr();
-    case 'Link':
-      return LocaleKeys.education_filter_link.tr();
+    case 'Text':
+      return LocaleKeys.education_filter_text.tr();
     default:
       return '';
   }

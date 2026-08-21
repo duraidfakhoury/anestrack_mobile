@@ -15,7 +15,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 const _maxFileSizeBytes = 15 * 1024 * 1024; // 15 MB, matches Parse's default cap
 
-const _contentTypes = ['Video', 'Document', 'Link'];
+const _contentTypes = ['Video', 'Document', 'Text'];
 
 const _documentMimeByExtension = {
   'pdf': 'application/pdf',
@@ -63,6 +63,15 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
   }
 
   bool get _isDocument => _contentType == 'Document';
+  bool get _isText => _contentType == 'Text';
+
+  String get _contentFieldLabel => _isText
+      ? LocaleKeys.supervisor_academic_field_lecture_text.tr()
+      : LocaleKeys.supervisor_academic_field_video_url.tr();
+
+  String get _contentFieldHint => _isText
+      ? LocaleKeys.supervisor_academic_field_lecture_text_hint.tr()
+      : LocaleKeys.supervisor_academic_field_video_url_hint.tr();
 
   Future<void> _pickFile() async {
     final files = await FilePickerPlatform.instance.pickFiles(
@@ -228,14 +237,11 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
                         ),
                       ),
                   ] else ...[
-                    _Label(LocaleKeys.supervisor_academic_field_content_url.tr()),
+                    _Label(_contentFieldLabel),
                     TextFormField(
                       controller: _contentUrlController,
-                      decoration: _decoration(
-                        hint: LocaleKeys
-                            .supervisor_academic_field_content_url_hint
-                            .tr(),
-                      ),
+                      maxLines: _isText ? 6 : 1,
+                      decoration: _decoration(hint: _contentFieldHint),
                       validator: (v) => v == null || v.trim().isEmpty
                           ? LocaleKeys.supervisor_academic_required_field.tr()
                           : null,
