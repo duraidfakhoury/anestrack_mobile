@@ -66,6 +66,10 @@ class ApisUrls {
   String get markAllNotificationsAsRead =>
       '$_baseApiUrl/functions/markAllAsRead';
 
+  /// Push device registration
+  String get registerDevice => '$_baseApiUrl/functions/registerDevice';
+  String get unregisterDevice => '$_baseApiUrl/functions/unregisterDevice';
+
   /// Announcements
   String get listAnnouncements => '$_baseApiUrl/functions/listAnnouncements';
   String get createAnnouncement => '$_baseApiUrl/functions/createAnnouncement';

@@ -30,9 +30,13 @@ Future<void> initVariables() async {
   NetworkHelper().init(headers: AppHeaders(), handler: AppErrorsHandler());
   await EasyLocalization.ensureInitialized();
   // Firebase Cloud Messaging (notifications). Reads android/app/google-services.json.
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  await FirebaseMessagingService.instance.init();
+  // firebase_messaging has no Windows/web plugin implementation — both are
+  // real `flutter run` targets for local dev on this repo, so skip there.
+  if (isPushNotificationSupportedPlatform) {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await FirebaseMessagingService.instance.init();
+  }
   // Cheap no-op if the offline queue is empty or the user isn't logged in
   // yet (see SyncPendingProceduresUseCase's hasToken gate).
   await sl<ProcedureSyncService>().start();

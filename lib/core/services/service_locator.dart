@@ -77,6 +77,11 @@ import 'package:anestrack_mobile/modules/student/complaints/data/repositories/co
 import 'package:anestrack_mobile/modules/student/complaints/domain/repositories/complaint_repository.dart';
 import 'package:anestrack_mobile/modules/student/complaints/domain/usecases/create_complaint_usecase.dart';
 import 'package:anestrack_mobile/modules/student/complaints/presentation/blocs/complaint_bloc.dart';
+import 'package:anestrack_mobile/modules/common/devices/data/datasources/device_data_source.dart';
+import 'package:anestrack_mobile/modules/common/devices/data/datasources/device_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/common/devices/data/repositories/device_repository_impl.dart';
+import 'package:anestrack_mobile/modules/common/devices/domain/repositories/device_repository.dart';
+import 'package:anestrack_mobile/modules/common/devices/domain/usecases/device_usecases.dart';
 import 'package:anestrack_mobile/modules/common/notifications/data/datasources/notification_data_source.dart';
 import 'package:anestrack_mobile/modules/common/notifications/data/datasources/notification_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/common/notifications/data/repositories/notification_repository_impl.dart';
@@ -205,6 +210,11 @@ class ServicesLocator {
       () => NotificationDataSourceImpl(),
     );
 
+    // Device (push registration) Data Source
+    sl.registerLazySingleton<DeviceDataSource>(
+      () => DeviceDataSourceImpl(),
+    );
+
     // Announcement Data Source
     sl.registerLazySingleton<AnnouncementDataSource>(
       () => AnnouncementDataSourceImpl(),
@@ -274,6 +284,9 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<NotificationRepository>(
       () => NotificationRepositoryImpl(sl<NotificationDataSource>()),
+    );
+    sl.registerLazySingleton<DeviceRepository>(
+      () => DeviceRepositoryImpl(sl<DeviceDataSource>()),
     );
     sl.registerLazySingleton<AnnouncementRepository>(
       () => AnnouncementRepositoryImpl(sl<AnnouncementDataSource>()),
@@ -361,6 +374,12 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<MarkAllNotificationsReadUseCase>(
       () => MarkAllNotificationsReadUseCase(sl<NotificationRepository>()),
+    );
+    sl.registerLazySingleton<RegisterDeviceUseCase>(
+      () => RegisterDeviceUseCase(sl<DeviceRepository>()),
+    );
+    sl.registerLazySingleton<UnregisterDeviceUseCase>(
+      () => UnregisterDeviceUseCase(sl<DeviceRepository>()),
     );
     sl.registerLazySingleton<ListAnnouncementsUseCase>(
       () => ListAnnouncementsUseCase(sl<AnnouncementRepository>()),

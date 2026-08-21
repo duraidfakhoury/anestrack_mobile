@@ -1,3 +1,4 @@
+import 'package:anestrack_mobile/core/services/notifications/firebase_messaging_service.dart';
 import 'package:anestrack_mobile/core/services/procedure_sync/procedure_sync_service.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
@@ -35,6 +36,9 @@ class LoginBloc extends Bloc<LoginEvent, BaseState<LoginResponse>> {
         // Flush anything queued while logged out (or by a previous
         // session) — fire-and-forget, must not block the login flow.
         sl<ProcedureSyncService>().syncNow();
+        // Register this device for push notifications now that a session
+        // token exists — also fire-and-forget, same reasoning.
+        FirebaseMessagingService.instance.registerCurrentDeviceIfLoggedIn();
         emit(state.successNotNull(loginResponse));
       },
     );

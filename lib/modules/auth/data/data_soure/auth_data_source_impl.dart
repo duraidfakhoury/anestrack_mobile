@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:anestrack_mobile/core/constants/api_urls.dart';
 import 'package:anestrack_mobile/core/network/network_helper.dart';
 import 'package:anestrack_mobile/core/services/cache_service.dart';
+import 'package:anestrack_mobile/core/services/notifications/firebase_messaging_service.dart';
 import 'package:anestrack_mobile/modules/auth/data/data_soure/auth_data_source.dart';
 import 'package:anestrack_mobile/modules/auth/data/models/login_response_model.dart';
 import 'package:anestrack_mobile/modules/auth/data/models/user_model.dart';
@@ -32,6 +33,9 @@ class AuthDataSourceImpl extends AuthDataSource {
   Future<bool> logout() async {
     try {
       _logger.i("Starting logout process...");
+      // Must happen while the session token is still valid — unregisterDevice
+      // is an authenticated call (integration-mobile.md §2).
+      await FirebaseMessagingService.instance.unregisterCurrentDevice();
       final response = await NetworkHelper().post(ApisUrls().logout);
       _logger.i("Logout API Response Status: ${response.statusCode}");
       _logger.i("Logout API Response Data: ${response.data}");
