@@ -65,6 +65,8 @@ class ProcedureTypeRepositoryImpl implements ProcedureTypeRepository {
             (model) => ProcedureType(
               id: model.id,
               name: model.name,
+              nameAr: model.nameAr,
+              category: model.category,
               isActive: model.isActive,
             ),
           )

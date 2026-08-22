@@ -35,6 +35,14 @@ class ProcedureModel extends Procedure {
     super.coSignExpiresAt,
     super.confirmationStatus,
     super.confirmationDeadline,
+    super.statusBeforeIntegrityAction,
+    super.integrityAction,
+    super.integrityReason,
+    super.integrityNote,
+    super.integrityActionAt,
+    super.integrityActionByName,
+    super.sessionId,
+    super.sessionSize,
   });
 
   factory ProcedureModel.fromJson(Map<String, dynamic> json) {
@@ -50,7 +58,9 @@ class ProcedureModel extends Procedure {
       hospitalId: pointerId(json['hospital']),
       hospitalName: pointerField(json['hospital'], 'name'),
       procedureTypeId: pointerId(json['procedureType']),
-      procedureTypeName: pointerField(json['procedureType'], 'name'),
+      procedureTypeName:
+          pointerField(json['procedureType'], 'nameAr') ??
+          pointerField(json['procedureType'], 'name'),
       studentId: pointerId(json['student']),
       studentName: userFullName(json['student']),
       supervisorId: pointerId(json['supervisor']),
@@ -68,6 +78,14 @@ class ProcedureModel extends Procedure {
       coSignExpiresAt: parseDate(json['coSignExpiresAt']),
       confirmationStatus: json['confirmationStatus'] as String?,
       confirmationDeadline: parseDate(json['confirmationDeadline']),
+      statusBeforeIntegrityAction: json['statusBeforeIntegrityAction'] as String?,
+      integrityAction: json['integrityAction'] as String?,
+      integrityReason: json['integrityReason'] as String?,
+      integrityNote: json['integrityNote'] as String?,
+      integrityActionAt: parseDate(json['integrityActionAt']),
+      integrityActionByName: userFullName(json['integrityActionBy']),
+      sessionId: json['sessionId'] as String?,
+      sessionSize: (json['sessionSize'] as num?)?.toInt(),
     );
   }
 
@@ -96,11 +114,16 @@ class ProcedureModel extends Procedure {
     return null;
   }
 
-  /// "FirstName LastName" of an included `_User` pointer.
+  /// "FirstName LastName" of an included `_User` pointer. Accepts both the
+  /// lowercase `firstName`/`lastName` used by the embedded pointer objects in
+  /// `listProcedures`/`listPendingForSupervisor`, and the capitalized
+  /// `FirstName`/`LastName` used elsewhere (e.g. the login response).
   static String? userFullName(dynamic value) {
     if (value is Map) {
-      final first = (value['FirstName'] as String?) ?? '';
-      final last = (value['LastName'] as String?) ?? '';
+      final first =
+          (value['firstName'] as String?) ?? (value['FirstName'] as String?) ?? '';
+      final last =
+          (value['lastName'] as String?) ?? (value['LastName'] as String?) ?? '';
       final full = '$first $last'.trim();
       if (full.isNotEmpty) return full;
     }

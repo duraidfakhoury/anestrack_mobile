@@ -32,6 +32,8 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
     {'id': 'Pending', 'label': 'قيد المراجعة'},
     {'id': 'Approved', 'label': 'معتمد'},
     {'id': 'Rejected', 'label': 'مرفوض'},
+    {'id': 'UnderInvestigation', 'label': 'قيد التحقيق'},
+    {'id': 'Revoked', 'label': 'ملغى'},
   ];
 
   @override
@@ -336,6 +338,52 @@ class _ProcedureCard extends StatelessWidget {
       .split('T')
       .first;
 
+  Widget _buildIntegrityNote(Procedure procedure) {
+    final revoked = procedure.status == 'Revoked';
+    final color = revoked ? const Color(0xFFB91C1C) : const Color(0xFF7C3AED);
+    final bg = revoked ? const Color(0xFFFBECEB) : const Color(0xFFF3EEFD);
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.shieldAlert, size: 14, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  ProcedureDisplay.integrityReasonLabel(
+                    procedure.integrityReason,
+                  ),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+            if (procedure.integrityNote != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                procedure.integrityNote!,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final assurance = procedure.assuranceLevel;
@@ -418,6 +466,7 @@ class _ProcedureCard extends StatelessWidget {
                 ],
               ),
             ),
+          if (procedure.isUnderIntegrityAction) _buildIntegrityNote(procedure),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.only(top: 12),

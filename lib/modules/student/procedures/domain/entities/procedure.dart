@@ -8,7 +8,7 @@ class Procedure extends Equatable {
   final String id;
 
   // Core
-  final String status; // Pending, Approved, Rejected
+  final String status; // Pending, Approved, Rejected, UnderInvestigation, Revoked
   final String patientName;
   final String? procedureDate; // ISO-8601
   final String? createdAt; // ISO-8601
@@ -46,6 +46,22 @@ class Procedure extends Equatable {
   confirmationStatus; // NotRequired, PendingConfirmation, Confirmed, Rejected, Expired
   final String? confirmationDeadline; // ISO-8601
 
+  // Integrity update — populated only once an admin has opened an
+  // investigation, revoked, or reinstated this record.
+  final String? statusBeforeIntegrityAction;
+  final String? integrityAction; // OpenInvestigation, Revoke, Reinstate
+  final String?
+  integrityReason; // Fabrication, PatientMismatch, DuplicateEntry, SupervisorDenial, UnauthorizedApproval, AdminError, Other
+  final String? integrityNote;
+  final String? integrityActionAt; // ISO-8601
+  final String? integrityActionByName;
+
+  // Multi-type sessions — several procedure types logged for one bedside
+  // event share a `sessionId`. `sessionSize` is 1 for an ordinary single-type
+  // procedure too, so it's always safe to read.
+  final String? sessionId;
+  final int? sessionSize;
+
   const Procedure({
     required this.id,
     required this.status,
@@ -74,11 +90,24 @@ class Procedure extends Equatable {
     this.coSignExpiresAt,
     this.confirmationStatus,
     this.confirmationDeadline,
+    this.statusBeforeIntegrityAction,
+    this.integrityAction,
+    this.integrityReason,
+    this.integrityNote,
+    this.integrityActionAt,
+    this.integrityActionByName,
+    this.sessionId,
+    this.sessionSize,
   });
 
   /// Whether this record is still waiting on a supervisor co-sign or confirmation.
   bool get isAwaitingCoSign => coSignStatus == 'Awaiting';
   bool get isPendingConfirmation => confirmationStatus == 'PendingConfirmation';
+
+  /// Frozen or struck by an admin — read-only, and no longer counts towards
+  /// the training log.
+  bool get isUnderIntegrityAction =>
+      status == 'UnderInvestigation' || status == 'Revoked';
 
   @override
   List<Object?> get props => [
@@ -109,5 +138,13 @@ class Procedure extends Equatable {
     coSignExpiresAt,
     confirmationStatus,
     confirmationDeadline,
+    statusBeforeIntegrityAction,
+    integrityAction,
+    integrityReason,
+    integrityNote,
+    integrityActionAt,
+    integrityActionByName,
+    sessionId,
+    sessionSize,
   ];
 }

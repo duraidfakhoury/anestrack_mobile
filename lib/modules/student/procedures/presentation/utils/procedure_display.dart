@@ -60,7 +60,7 @@ class ProcedureDisplay {
     }
   }
 
-  // ---- Status (Pending / Approved / Rejected) ----
+  // ---- Status (Pending / Approved / Rejected / UnderInvestigation / Revoked) ----
 
   static String statusLabel(String? status) {
     switch (status) {
@@ -68,6 +68,10 @@ class ProcedureDisplay {
         return 'معتمد';
       case 'Rejected':
         return 'مرفوض';
+      case 'UnderInvestigation':
+        return 'قيد التحقيق';
+      case 'Revoked':
+        return 'ملغى';
       case 'Pending':
       default:
         return 'قيد المراجعة';
@@ -80,9 +84,35 @@ class ProcedureDisplay {
         return const Color(0xFF047857);
       case 'Rejected':
         return const Color(0xFFB91C1C);
+      case 'UnderInvestigation':
+        return const Color(0xFF7C3AED);
+      case 'Revoked':
+        return const Color(0xFF4B5563);
       case 'Pending':
       default:
         return const Color(0xFFB45309);
+    }
+  }
+
+  // ---- Integrity action reason ----
+
+  static String integrityReasonLabel(String? reason) {
+    switch (reason) {
+      case 'Fabrication':
+        return 'تلفيق بيانات';
+      case 'PatientMismatch':
+        return 'عدم تطابق بيانات المريض';
+      case 'DuplicateEntry':
+        return 'إدخال مُكرّر';
+      case 'SupervisorDenial':
+        return 'إنكار المشرف';
+      case 'UnauthorizedApproval':
+        return 'اعتماد غير مخوّل';
+      case 'AdminError':
+        return 'خطأ إداري';
+      case 'Other':
+      default:
+        return 'سبب آخر';
     }
   }
 
