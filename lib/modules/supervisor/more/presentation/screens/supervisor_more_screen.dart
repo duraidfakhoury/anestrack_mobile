@@ -47,217 +47,245 @@ class _SupervisorMoreScreenState extends State<SupervisorMoreScreen> {
 
           return Container(
             color: AppColors.slate50,
-            child: CustomScrollView(
-              slivers: [
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _SupervisorHeaderDelegate(
-                    title: 'nav.more'.tr(context: context),
-                    subtitle: 'supervisor_more.subtitle'.tr(context: context),
+            child: RefreshIndicator(
+              onRefresh: () {
+                context.read<CurrentUserBloc>().add(FetchCurrentUserEvent());
+                return context.read<CurrentUserBloc>().stream.firstWhere(
+                  (s) => !s.isLoading,
+                );
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SupervisorHeaderDelegate(
+                      title: 'nav.more'.tr(context: context),
+                      subtitle: 'supervisor_more.subtitle'.tr(context: context),
+                    ),
                   ),
-                ),
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          children: [
-                            _buildToggleCard(
-                              icon: LucideIcons.mail,
-                              iconColor: AppColors.blue600,
-                              iconBg: AppColors.blue100,
-                              title: 'supervisor_more.email_notifications'.tr(
-                                context: context,
-                              ),
-                              subtitle:
-                                  'supervisor_more.email_notifications_subtitle'
-                                      .tr(context: context),
-                              value: _emailNotifications,
-                              onChanged: (val) {
-                                setState(() => _emailNotifications = val);
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            _buildToggleCard(
-                              icon: LucideIcons.bell,
-                              iconColor: AppColors.purple600,
-                              iconBg: AppColors.purple100,
-                              title: 'supervisor_more.push_notifications'.tr(
-                                context: context,
-                              ),
-                              subtitle:
-                                  'supervisor_more.push_notifications_subtitle'
-                                      .tr(context: context),
-                              value: _pushNotifications,
-                              onChanged: (val) {
-                                setState(() => _pushNotifications = val);
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            _buildNavigationCard(
-                              icon: LucideIcons.megaphone,
-                              iconColor: AppColors.blue600,
-                              iconBg: AppColors.blue100,
-                              title: 'supervisor_more.announcements'.tr(
-                                context: context,
-                              ),
-                              subtitle:
-                                  'supervisor_more.announcements_subtitle'
-                                      .tr(context: context),
-                              onTap: () =>
-                                  context.push(AnnouncementsRoute.name),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildNavigationCard(
-                              icon: LucideIcons.shield,
-                              iconColor: AppColors.slate600,
-                              iconBg: AppColors.gray100,
-                              title: 'supervisor_more.privacy_security'.tr(
-                                context: context,
-                              ),
-                              subtitle:
-                                  'supervisor_more.privacy_security_subtitle'
-                                      .tr(context: context),
-                              onTap: () {},
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'supervisor_more.account_info'.tr(context: context),
-                              style: const TextStyle(
-                                color: AppColors.slate500,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppColors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.slate200),
-                              ),
-                              child: BlocBuilder<CurrentUserBloc,
-                                  BaseState<CurrentUser>>(
-                                builder: (context, userState) {
-                                  final user = userState.data;
-                                  const dash = '—';
-                                  return Column(
-                                    children: [
-                                      _buildAccountRow(
-                                        'supervisor_more.name_label'
-                                            .tr(context: context),
-                                        user?.fullName ?? dash,
-                                      ),
-                                      const Divider(
-                                        height: 24,
-                                        color: AppColors.slate100,
-                                      ),
-                                      _buildAccountRow(
-                                        'supervisor_more.email_label'
-                                            .tr(context: context),
-                                        (user?.employeeEmail?.isNotEmpty == true)
-                                            ? user!.employeeEmail!
-                                            : dash,
-                                      ),
-                                      const Divider(
-                                        height: 24,
-                                        color: AppColors.slate100,
-                                      ),
-                                      _buildAccountRow(
-                                        'supervisor_more.role_label'
-                                            .tr(context: context),
-                                        user == null
-                                            ? dash
-                                            : (user.employeePosition
-                                                        ?.isNotEmpty ==
-                                                    true
-                                                ? user.employeePosition!
-                                                : (user.isSuperAdmin
-                                                    ? 'مدير'
-                                                    : 'مشرف')),
-                                      ),
-                                    ],
-                                  );
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children: [
+                              _buildToggleCard(
+                                icon: LucideIcons.mail,
+                                iconColor: AppColors.blue600,
+                                iconBg: AppColors.blue100,
+                                title: 'supervisor_more.email_notifications'.tr(
+                                  context: context,
+                                ),
+                                subtitle:
+                                    'supervisor_more.email_notifications_subtitle'
+                                        .tr(context: context),
+                                value: _emailNotifications,
+                                onChanged: (val) {
+                                  setState(() => _emailNotifications = val);
                                 },
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: isLoading
-                                ? null
-                                : () => context
-                                    .read<LogoutBloc>()
-                                    .add(const LogoutRequestedEvent()),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.red600,
-                              backgroundColor: AppColors.red100,
-                              side: const BorderSide(
-                                color: AppColors.red200,
-                                width: 2,
+                              const SizedBox(height: 12),
+                              _buildToggleCard(
+                                icon: LucideIcons.bell,
+                                iconColor: AppColors.purple600,
+                                iconBg: AppColors.purple100,
+                                title: 'supervisor_more.push_notifications'.tr(
+                                  context: context,
+                                ),
+                                subtitle:
+                                    'supervisor_more.push_notifications_subtitle'
+                                        .tr(context: context),
+                                value: _pushNotifications,
+                                onChanged: (val) {
+                                  setState(() => _pushNotifications = val);
+                                },
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.red600,
+                              const SizedBox(height: 12),
+                              _buildNavigationCard(
+                                icon: LucideIcons.megaphone,
+                                iconColor: AppColors.blue600,
+                                iconBg: AppColors.blue100,
+                                title: 'supervisor_more.announcements'.tr(
+                                  context: context,
+                                ),
+                                subtitle:
+                                    'supervisor_more.announcements_subtitle'.tr(
+                                      context: context,
                                     ),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(LucideIcons.logOut, size: 18),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'logout'.tr(context: context),
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                onTap: () =>
+                                    context.push(AnnouncementsRoute.name),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildNavigationCard(
+                                icon: LucideIcons.shield,
+                                iconColor: AppColors.slate600,
+                                iconBg: AppColors.gray100,
+                                title: 'supervisor_more.privacy_security'.tr(
+                                  context: context,
+                                ),
+                                subtitle:
+                                    'supervisor_more.privacy_security_subtitle'
+                                        .tr(context: context),
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'supervisor_more.account_info'.tr(
+                                  context: context,
+                                ),
+                                style: const TextStyle(
+                                  color: AppColors.slate500,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.slate200),
+                                ),
+                                child:
+                                    BlocBuilder<
+                                      CurrentUserBloc,
+                                      BaseState<CurrentUser>
+                                    >(
+                                      builder: (context, userState) {
+                                        final user = userState.data;
+                                        const dash = '—';
+                                        return Column(
+                                          children: [
+                                            _buildAccountRow(
+                                              'supervisor_more.name_label'.tr(
+                                                context: context,
+                                              ),
+                                              user?.fullName ?? dash,
+                                            ),
+                                            const Divider(
+                                              height: 24,
+                                              color: AppColors.slate100,
+                                            ),
+                                            _buildAccountRow(
+                                              'supervisor_more.email_label'.tr(
+                                                context: context,
+                                              ),
+                                              (user
+                                                          ?.employeeEmail
+                                                          ?.isNotEmpty ==
+                                                      true)
+                                                  ? user!.employeeEmail!
+                                                  : dash,
+                                            ),
+                                            const Divider(
+                                              height: 24,
+                                              color: AppColors.slate100,
+                                            ),
+                                            _buildAccountRow(
+                                              'supervisor_more.role_label'.tr(
+                                                context: context,
+                                              ),
+                                              user == null
+                                                  ? dash
+                                                  : (user
+                                                                .employeePosition
+                                                                ?.isNotEmpty ==
+                                                            true
+                                                        ? user.employeePosition!
+                                                        : (user.isSuperAdmin
+                                                              ? 'مدير'
+                                                              : 'مشرف')),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () => context.read<LogoutBloc>().add(
+                                      const LogoutRequestedEvent(),
+                                    ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.red600,
+                                backgroundColor: AppColors.red100,
+                                side: const BorderSide(
+                                  color: AppColors.red200,
+                                  width: 2,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.red600,
                                       ),
-                                    ],
-                                  ),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          LucideIcons.logOut,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'logout'.tr(context: context),
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
                           ),
                         ),
-                      ),
-                      Center(
-                        child: Text(
-                          'supervisor_more.version'.tr(context: context),
-                          style: const TextStyle(
-                            color: AppColors.slate400,
-                            fontSize: 12,
+                        Center(
+                          child: Text(
+                            'supervisor_more.version'.tr(context: context),
+                            style: const TextStyle(
+                              color: AppColors.slate400,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -318,8 +346,9 @@ class _SupervisorMoreScreenState extends State<SupervisorMoreScreen> {
           Switch.adaptive(
             value: value,
             activeThumbColor: AppColors.supervisorPrimary,
-            activeTrackColor:
-                AppColors.supervisorPrimary.withValues(alpha: 0.3),
+            activeTrackColor: AppColors.supervisorPrimary.withValues(
+              alpha: 0.3,
+            ),
             onChanged: onChanged,
           ),
         ],
@@ -398,10 +427,7 @@ class _SupervisorMoreScreenState extends State<SupervisorMoreScreen> {
         children: [
           Text(
             metric,
-            style: const TextStyle(
-              color: AppColors.slate400,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: AppColors.slate400, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
@@ -474,10 +500,7 @@ class _SupervisorHeaderDelegate extends SliverPersistentHeaderDelegate {
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: const TextStyle(
-                color: AppColors.indigo200,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: AppColors.indigo200, fontSize: 12),
             ),
           ],
         ),

@@ -30,8 +30,7 @@ class ResearchPaperDetailScreen extends StatefulWidget {
       _ResearchPaperDetailScreenState();
 }
 
-class _ResearchPaperDetailScreenState
-    extends State<ResearchPaperDetailScreen> {
+class _ResearchPaperDetailScreenState extends State<ResearchPaperDetailScreen> {
   late final ResearchPaperDetailBloc _bloc;
   late final ResearchPaperCommentsBloc _commentsBloc;
 
@@ -51,6 +50,15 @@ class _ResearchPaperDetailScreenState
     super.dispose();
   }
 
+  Future<void> _onRefresh() {
+    _bloc.add(FetchResearchPaperDetailEvent(widget.paperId));
+    _commentsBloc.add(FetchResearchPaperCommentsEvent(widget.paperId));
+    return Future.wait([
+      _bloc.stream.firstWhere((s) => !s.isLoading),
+      _commentsBloc.stream.firstWhere((s) => !s.isLoading),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,15 +72,18 @@ class _ResearchPaperDetailScreenState
               return SafeArea(
                 child: _ErrorView(
                   message: state.errorMessage,
-                  onRetry: () => _bloc.add(
-                    FetchResearchPaperDetailEvent(widget.paperId),
-                  ),
+                  onRetry: () =>
+                      _bloc.add(FetchResearchPaperDetailEvent(widget.paperId)),
                 ),
               );
             }
             return const Center(child: CircularProgressIndicator());
           }
-          return _DetailBody(paper: paper, commentsBloc: _commentsBloc);
+          return _DetailBody(
+            paper: paper,
+            commentsBloc: _commentsBloc,
+            onRefresh: _onRefresh,
+          );
         },
       ),
     );
@@ -80,9 +91,14 @@ class _ResearchPaperDetailScreenState
 }
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.paper, required this.commentsBloc});
+  const _DetailBody({
+    required this.paper,
+    required this.commentsBloc,
+    required this.onRefresh,
+  });
   final ResearchPaper paper;
   final ResearchPaperCommentsBloc commentsBloc;
+  final Future<void> Function() onRefresh;
 
   String? get _formattedDate {
     final raw = paper.publishedAt;
@@ -94,171 +110,185 @@ class _DetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(
-              top: 56,
-              bottom: 24,
-              left: 20,
-              right: 20,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.studentPrimary, AppColors.studentPrimaryDark],
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(
+                top: 56,
+                bottom: 24,
+                left: 20,
+                right: 20,
               ),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context.pop(),
-                      icon: const Icon(
-                        LucideIcons.arrowRight,
-                        color: AppColors.white,
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        LocaleKeys.library_detail_title.tr(),
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.studentPrimary,
+                    AppColors.studentPrimaryDark,
                   ],
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(28),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(
+                          LucideIcons.arrowRight,
+                          color: AppColors.white,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          LocaleKeys.library_detail_title.tr(),
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    LucideIcons.fileText,
-                    color: AppColors.white,
-                    size: 22,
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      LucideIcons.fileText,
+                      color: AppColors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    paper.title,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList.list(
+              children: [
+                if (paper.description.isNotEmpty)
+                  Text(
+                    paper.description,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.slate600,
+                      height: 1.6,
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                if (paper.authors.isNotEmpty)
+                  _InfoRow(
+                    icon: LucideIcons.users,
+                    label: LocaleKeys.library_authors_label.tr(),
+                    value: paper.authors.join('، '),
+                  ),
+                if (paper.researchTypeName != null)
+                  _InfoRow(
+                    icon: LucideIcons.tag,
+                    label: LocaleKeys.library_type_label.tr(),
+                    value: paper.researchTypeName!,
+                  ),
+                if (_formattedDate != null)
+                  _InfoRow(
+                    icon: LucideIcons.calendar,
+                    label: LocaleKeys.library_published_at_label.tr(),
+                    value: _formattedDate!,
+                  ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.blue600,
+                      foregroundColor: AppColors.white,
+                    ),
+                    onPressed: paper.fileUrl == null
+                        ? null
+                        : () => context.push(
+                            PdfViewerRoute.name,
+                            extra: PdfViewerArgs(
+                              title: paper.title,
+                              url: paper.fileUrl!,
+                            ),
+                          ),
+                    icon: const Icon(LucideIcons.fileDown, size: 16),
+                    label: Text(
+                      paper.fileUrl == null
+                          ? LocaleKeys.library_pdf_not_available.tr()
+                          : LocaleKeys.library_open_pdf.tr(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  LocaleKeys.library_notes_title.tr(),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.slate900,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  paper.title,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
+                BlocBuilder<
+                  ResearchPaperCommentsBloc,
+                  ResearchPaperCommentsState
+                >(
+                  bloc: commentsBloc,
+                  builder: (context, state) {
+                    if (state.isLoading || state.isInit) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final comments = state.data ?? const [];
+                    if (comments.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          LocaleKeys.library_empty_notes.tr(),
+                          style: const TextStyle(color: AppColors.slate400),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: comments
+                          .map((c) => _CommentTile(comment: c))
+                          .toList(),
+                    );
+                  },
                 ),
               ],
             ),
           ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(20),
-          sliver: SliverList.list(
-            children: [
-              if (paper.description.isNotEmpty)
-                Text(
-                  paper.description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.slate600,
-                    height: 1.6,
-                  ),
-                ),
-              const SizedBox(height: 16),
-              if (paper.authors.isNotEmpty)
-                _InfoRow(
-                  icon: LucideIcons.users,
-                  label: LocaleKeys.library_authors_label.tr(),
-                  value: paper.authors.join('، '),
-                ),
-              if (paper.researchTypeName != null)
-                _InfoRow(
-                  icon: LucideIcons.tag,
-                  label: LocaleKeys.library_type_label.tr(),
-                  value: paper.researchTypeName!,
-                ),
-              if (_formattedDate != null)
-                _InfoRow(
-                  icon: LucideIcons.calendar,
-                  label: LocaleKeys.library_published_at_label.tr(),
-                  value: _formattedDate!,
-                ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.blue600,
-                    foregroundColor: AppColors.white,
-                  ),
-                  onPressed: paper.fileUrl == null
-                      ? null
-                      : () => context.push(
-                          PdfViewerRoute.name,
-                          extra: PdfViewerArgs(
-                            title: paper.title,
-                            url: paper.fileUrl!,
-                          ),
-                        ),
-                  icon: const Icon(LucideIcons.fileDown, size: 16),
-                  label: Text(
-                    paper.fileUrl == null
-                        ? LocaleKeys.library_pdf_not_available.tr()
-                        : LocaleKeys.library_open_pdf.tr(),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                LocaleKeys.library_notes_title.tr(),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.slate900,
-                ),
-              ),
-              const SizedBox(height: 12),
-              BlocBuilder<ResearchPaperCommentsBloc, ResearchPaperCommentsState>(
-                bloc: commentsBloc,
-                builder: (context, state) {
-                  if (state.isLoading || state.isInit) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  final comments = state.data ?? const [];
-                  if (comments.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Text(
-                        LocaleKeys.library_empty_notes.tr(),
-                        style: const TextStyle(color: AppColors.slate400),
-                      ),
-                    );
-                  }
-                  return Column(
-                    children: comments.map((c) => _CommentTile(comment: c)).toList(),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -295,7 +325,10 @@ class _CommentTile extends StatelessWidget {
               if (comment.createdAt != null)
                 Text(
                   formatRelative(comment.createdAt!),
-                  style: const TextStyle(fontSize: 10, color: AppColors.slate400),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.slate400,
+                  ),
                 ),
             ],
           ),
@@ -311,7 +344,11 @@ class _CommentTile extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -358,7 +395,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(LucideIcons.circleAlert, size: 44, color: AppColors.red600),
+            const Icon(
+              LucideIcons.circleAlert,
+              size: 44,
+              color: AppColors.red600,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

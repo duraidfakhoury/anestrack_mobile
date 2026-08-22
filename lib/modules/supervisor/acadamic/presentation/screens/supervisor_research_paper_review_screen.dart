@@ -53,11 +53,23 @@ class _SupervisorResearchPaperReviewScreenState
     super.dispose();
   }
 
+  Future<void> _onRefresh() {
+    _detailBloc.add(FetchResearchPaperDetailEvent(widget.paperId));
+    _commentsBloc.add(FetchResearchPaperCommentsEvent(widget.paperId));
+    return Future.wait([
+      _detailBloc.stream.firstWhere((s) => !s.isLoading),
+      _commentsBloc.stream.firstWhere((s) => !s.isLoading),
+    ]);
+  }
+
   void _sendNote() {
     final content = _noteController.text.trim();
     if (content.isEmpty) return;
     _commentsBloc.add(
-      SubmitResearchPaperCommentEvent(paperId: widget.paperId, content: content),
+      SubmitResearchPaperCommentEvent(
+        paperId: widget.paperId,
+        content: content,
+      ),
     );
     _noteController.clear();
     FocusScope.of(context).unfocus();
@@ -85,49 +97,59 @@ class _SupervisorResearchPaperReviewScreenState
           return Column(
             children: [
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    _PaperInfoCard(paper: paper),
-                    const SizedBox(height: 20),
-                    Text(
-                      LocaleKeys.supervisor_academic_notes_title.tr(),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.slate900,
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      _PaperInfoCard(paper: paper),
+                      const SizedBox(height: 20),
+                      Text(
+                        LocaleKeys.supervisor_academic_notes_title.tr(),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.slate900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    BlocBuilder<ResearchPaperCommentsBloc, ResearchPaperCommentsState>(
-                      bloc: _commentsBloc,
-                      builder: (context, state) {
-                        if (state.isLoading || state.isInit) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-                        final comments = state.data ?? const [];
-                        if (comments.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            child: Center(
-                              child: Text(
-                                LocaleKeys.supervisor_academic_empty_notes.tr(),
-                                style: const TextStyle(color: AppColors.slate400),
+                      const SizedBox(height: 12),
+                      BlocBuilder<
+                        ResearchPaperCommentsBloc,
+                        ResearchPaperCommentsState
+                      >(
+                        bloc: _commentsBloc,
+                        builder: (context, state) {
+                          if (state.isLoading || state.isInit) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          final comments = state.data ?? const [];
+                          if (comments.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Text(
+                                  LocaleKeys.supervisor_academic_empty_notes
+                                      .tr(),
+                                  style: const TextStyle(
+                                    color: AppColors.slate400,
+                                  ),
+                                ),
                               ),
-                            ),
+                            );
+                          }
+                          return Column(
+                            children: comments
+                                .map((c) => _CommentTile(comment: c))
+                                .toList(),
                           );
-                        }
-                        return Column(
-                          children: comments
-                              .map((c) => _CommentTile(comment: c))
-                              .toList(),
-                        );
-                      },
-                    ),
-                  ],
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
               _NoteComposer(controller: _noteController, onSend: _sendNote),
@@ -174,12 +196,19 @@ class _PaperInfoCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(LucideIcons.users, size: 14, color: AppColors.slate500),
+                const Icon(
+                  LucideIcons.users,
+                  size: 14,
+                  color: AppColors.slate500,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     paper.authors.join('، '),
-                    style: const TextStyle(fontSize: 12, color: AppColors.slate500),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.slate500,
+                    ),
                   ),
                 ),
               ],
@@ -197,7 +226,10 @@ class _PaperInfoCard extends StatelessWidget {
                   ? null
                   : () => context.push(
                       PdfViewerRoute.name,
-                      extra: PdfViewerArgs(title: paper.title, url: paper.fileUrl!),
+                      extra: PdfViewerArgs(
+                        title: paper.title,
+                        url: paper.fileUrl!,
+                      ),
                     ),
               icon: const Icon(LucideIcons.fileDown, size: 16),
               label: Text(
@@ -245,7 +277,10 @@ class _CommentTile extends StatelessWidget {
               if (comment.createdAt != null)
                 Text(
                   formatRelative(comment.createdAt!),
-                  style: const TextStyle(fontSize: 10, color: AppColors.slate400),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.slate400,
+                  ),
                 ),
             ],
           ),

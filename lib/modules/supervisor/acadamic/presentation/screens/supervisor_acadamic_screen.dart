@@ -48,102 +48,116 @@ class _SupervisorAcadamicScreenState extends State<SupervisorAcadamicScreen> {
     if (created == true) _activityBloc.add(FetchRecentActivityEvent());
   }
 
+  Future<void> _onRefresh() {
+    _activityBloc.add(FetchRecentActivityEvent());
+    return _activityBloc.stream.firstWhere((s) => !s.isLoading);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.slate50,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Header(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Column(
-                children: [
-                  _ActionCard(
-                    title: LocaleKeys.supervisor_academic_add_lecture_title.tr(),
-                    subtitle:
-                        LocaleKeys.supervisor_academic_add_lecture_subtitle.tr(),
-                    icon: LucideIcons.upload,
-                    color: AppColors.blue600,
-                    onTap: _openCreateLecture,
-                  ),
-                  const SizedBox(height: 12),
-                  _ActionCard(
-                    title: LocaleKeys.supervisor_academic_research_library_title
-                        .tr(),
-                    subtitle: LocaleKeys
-                        .supervisor_academic_research_library_subtitle
-                        .tr(),
-                    icon: LucideIcons.fileText,
-                    color: AppColors.purple600,
-                    onTap: () =>
-                        context.push(SupervisorResearchLibraryRoute.name),
-                  ),
-                  const SizedBox(height: 12),
-                  _ActionCard(
-                    title: LocaleKeys
-                        .supervisor_academic_publish_announcement_title
-                        .tr(),
-                    subtitle: LocaleKeys
-                        .supervisor_academic_publish_announcement_subtitle
-                        .tr(),
-                    icon: LucideIcons.bell,
-                    color: AppColors.amber600,
-                    onTap: _openCreateAnnouncement,
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    LocaleKeys.supervisor_academic_recent_activity_title.tr(),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.slate900,
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Column(
+                  children: [
+                    _ActionCard(
+                      title: LocaleKeys.supervisor_academic_add_lecture_title
+                          .tr(),
+                      subtitle: LocaleKeys
+                          .supervisor_academic_add_lecture_subtitle
+                          .tr(),
+                      icon: LucideIcons.upload,
+                      color: AppColors.blue600,
+                      onTap: _openCreateLecture,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  BlocBuilder<RecentActivityBloc, RecentActivityState>(
-                    bloc: _activityBloc,
-                    builder: (context, state) {
-                      if (state.isLoading || state.isInit) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      final items = state.data ?? const [];
-                      if (items.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Center(
-                            child: Text(
-                              LocaleKeys
-                                  .supervisor_academic_empty_recent_activity
-                                  .tr(),
-                              style: const TextStyle(color: AppColors.slate400),
-                            ),
-                          ),
-                        );
-                      }
-                      return Column(
-                        children: items
-                            .map((item) => _ActivityTile(item: item))
-                            .toList(),
-                      );
-                    },
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    _ActionCard(
+                      title: LocaleKeys
+                          .supervisor_academic_research_library_title
+                          .tr(),
+                      subtitle: LocaleKeys
+                          .supervisor_academic_research_library_subtitle
+                          .tr(),
+                      icon: LucideIcons.fileText,
+                      color: AppColors.purple600,
+                      onTap: () =>
+                          context.push(SupervisorResearchLibraryRoute.name),
+                    ),
+                    const SizedBox(height: 12),
+                    _ActionCard(
+                      title: LocaleKeys
+                          .supervisor_academic_publish_announcement_title
+                          .tr(),
+                      subtitle: LocaleKeys
+                          .supervisor_academic_publish_announcement_subtitle
+                          .tr(),
+                      icon: LucideIcons.bell,
+                      color: AppColors.amber600,
+                      onTap: _openCreateAnnouncement,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      LocaleKeys.supervisor_academic_recent_activity_title.tr(),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.slate900,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    BlocBuilder<RecentActivityBloc, RecentActivityState>(
+                      bloc: _activityBloc,
+                      builder: (context, state) {
+                        if (state.isLoading || state.isInit) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        final items = state.data ?? const [];
+                        if (items.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: Text(
+                                LocaleKeys
+                                    .supervisor_academic_empty_recent_activity
+                                    .tr(),
+                                style: const TextStyle(
+                                  color: AppColors.slate400,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return Column(
+                          children: items
+                              .map((item) => _ActivityTile(item: item))
+                              .toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -166,7 +180,11 @@ class _Header extends StatelessWidget {
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -217,7 +235,11 @@ class _ActionCard extends StatelessWidget {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
-            BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
@@ -239,7 +261,10 @@ class _ActionCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(fontSize: 11, color: AppColors.slate500),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.slate500,
+                    ),
                   ),
                 ],
               ),

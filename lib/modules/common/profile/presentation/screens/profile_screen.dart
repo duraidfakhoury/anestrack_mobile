@@ -25,16 +25,26 @@ class ProfileScreen extends StatelessWidget {
             if (state.isError) {
               return _ErrorView(
                 message: state.errorMessage,
-                onRetry: () =>
-                    context.read<CurrentUserBloc>().add(FetchCurrentUserEvent()),
+                onRetry: () => context.read<CurrentUserBloc>().add(
+                  FetchCurrentUserEvent(),
+                ),
               );
             }
             final user = state.data!;
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _Header(user: user)),
-                SliverToBoxAdapter(child: _InfoSection(user: user)),
-              ],
+            return RefreshIndicator(
+              onRefresh: () {
+                context.read<CurrentUserBloc>().add(FetchCurrentUserEvent());
+                return context.read<CurrentUserBloc>().stream.firstWhere(
+                  (s) => !s.isLoading,
+                );
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(child: _Header(user: user)),
+                  SliverToBoxAdapter(child: _InfoSection(user: user)),
+                ],
+              ),
             );
           },
         ),
@@ -89,7 +99,11 @@ class _Header extends StatelessWidget {
               color: AppColors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(LucideIcons.user, color: AppColors.white, size: 40),
+            child: const Icon(
+              LucideIcons.user,
+              color: AppColors.white,
+              size: 40,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -133,13 +147,29 @@ class _InfoSection extends StatelessWidget {
     final rows = <({IconData icon, String label, String value})>[
       (icon: LucideIcons.atSign, label: 'اسم المستخدم', value: user.username),
       if (user.nationalId.isNotEmpty)
-        (icon: LucideIcons.creditCard, label: 'الرقم الوطني', value: user.nationalId),
+        (
+          icon: LucideIcons.creditCard,
+          label: 'الرقم الوطني',
+          value: user.nationalId,
+        ),
       if (user.mobileNumber.isNotEmpty)
-        (icon: LucideIcons.phone, label: 'رقم الجوال', value: user.mobileNumber),
+        (
+          icon: LucideIcons.phone,
+          label: 'رقم الجوال',
+          value: user.mobileNumber,
+        ),
       if (user.employeeEmail?.isNotEmpty == true)
-        (icon: LucideIcons.mail, label: 'البريد الإلكتروني', value: user.employeeEmail!),
+        (
+          icon: LucideIcons.mail,
+          label: 'البريد الإلكتروني',
+          value: user.employeeEmail!,
+        ),
       if (user.employeeId?.isNotEmpty == true)
-        (icon: LucideIcons.badgeCheck, label: 'الرقم الوظيفي', value: user.employeeId!),
+        (
+          icon: LucideIcons.badgeCheck,
+          label: 'الرقم الوظيفي',
+          value: user.employeeId!,
+        ),
       (
         icon: LucideIcons.userCog,
         label: 'نوع الحساب',
@@ -166,8 +196,17 @@ class _InfoSection extends StatelessWidget {
           children: [
             for (var i = 0; i < rows.length; i++) ...[
               if (i > 0)
-                const Divider(height: 1, color: AppColors.gray100, indent: 16, endIndent: 16),
-              _InfoRow(icon: rows[i].icon, label: rows[i].label, value: rows[i].value),
+                const Divider(
+                  height: 1,
+                  color: AppColors.gray100,
+                  indent: 16,
+                  endIndent: 16,
+                ),
+              _InfoRow(
+                icon: rows[i].icon,
+                label: rows[i].label,
+                value: rows[i].value,
+              ),
             ],
           ],
         ),
@@ -177,7 +216,11 @@ class _InfoSection extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -204,7 +247,10 @@ class _InfoRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 11, color: AppColors.slate500),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.slate500,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -237,11 +283,18 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(LucideIcons.circleAlert, size: 40, color: AppColors.red600),
+            const Icon(
+              LucideIcons.circleAlert,
+              size: 40,
+              color: AppColors.red600,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),
+            ElevatedButton(
+              onPressed: onRetry,
+              child: const Text('إعادة المحاولة'),
+            ),
           ],
         ),
       ),

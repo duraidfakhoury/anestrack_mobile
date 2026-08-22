@@ -87,6 +87,27 @@ class StudentHomeScreen extends StatelessWidget {
 class _StudentHomeView extends StatelessWidget {
   const _StudentHomeView();
 
+  Future<void> _onRefresh(BuildContext context) async {
+    context.read<CurrentUserBloc>().add(FetchCurrentUserEvent());
+    context.read<AnnouncementsBloc>().add(RefreshAnnouncementsEvent());
+    context.read<StudentDashboardBloc>().add(FetchStudentDashboardEvent());
+    context.read<UnreadCountBloc>().add(FetchUnreadCountEvent());
+    context.read<PendingProceduresBloc>().add(
+      const RefreshPendingProceduresEvent(),
+    );
+    await Future.wait([
+      context.read<CurrentUserBloc>().stream.firstWhere((s) => !s.isLoading),
+      context.read<AnnouncementsBloc>().stream.firstWhere((s) => !s.isLoading),
+      context.read<StudentDashboardBloc>().stream.firstWhere(
+        (s) => !s.isLoading,
+      ),
+      context.read<UnreadCountBloc>().stream.firstWhere((s) => !s.isLoading),
+      context.read<PendingProceduresBloc>().stream.firstWhere(
+        (s) => !s.isLoading,
+      ),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,16 +138,20 @@ class _StudentHomeView extends StatelessWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _header(context),
-            const _OfflineIndicator(),
-            _pendingBanner(context),
-            _progressCard(context),
-            _announcementsSection(context),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () => _onRefresh(context),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _header(context),
+              const _OfflineIndicator(),
+              _pendingBanner(context),
+              _progressCard(context),
+              _announcementsSection(context),
+            ],
+          ),
         ),
       ),
     );
@@ -450,12 +475,16 @@ class _StudentHomeView extends StatelessWidget {
           child: BlocBuilder<StudentDashboardBloc, StudentDashboardState>(
             builder: (context, dashboardState) {
               final logged = dashboardState.data?.totalProcedures ?? 0;
-              final percentage = (logged / StudentHomeScreen._requiredProcedures)
-                  .clamp(0.0, 1.0);
+              final percentage =
+                  (logged / StudentHomeScreen._requiredProcedures).clamp(
+                    0.0,
+                    1.0,
+                  );
               return BlocBuilder<CurrentUserBloc, BaseState<CurrentUser>>(
                 builder: (context, userState) {
                   final year =
-                      userState.data?.yearCode ?? StudentHomeScreen._fallbackYear;
+                      userState.data?.yearCode ??
+                      StudentHomeScreen._fallbackYear;
                   return Column(
                     children: [
                       Row(
