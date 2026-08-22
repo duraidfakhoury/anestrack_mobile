@@ -4,6 +4,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/entities/co_s
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_context_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/widgets/evaluation_rating_sheet.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -76,7 +77,18 @@ class _CoSignCodeSheetState extends State<CoSignCodeSheet> {
     _contextBloc.add(FetchCoSignContextEvent(_normalizedCode));
   }
 
-  void _coSign() {
+  Future<void> _coSign() async {
+    final procedureId = _contextBloc.state.data?.procedureId;
+    if (procedureId != null && procedureId.isNotEmpty) {
+      final rated = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => EvaluationRatingSheet(procedureId: procedureId),
+      );
+      if (rated != true) return;
+      if (!mounted) return;
+    }
     _actionBloc.add(
       SubmitCoSignEvent(
         CoSignParameters(

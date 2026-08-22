@@ -9,6 +9,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/li
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/create_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/evaluation_parameters.dart';
 
 class ProcedureDataSourceImpl extends ProcedureDataSource {
   final Logger _logger = Logger();
@@ -154,6 +155,21 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
       return procedures;
     } catch (e) {
       _logger.e("Failed to fetch pending procedures: $e");
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> createEvaluation(EvaluationParameters parameters) async {
+    try {
+      _logger.i("Creating evaluation: ${parameters.toJson()}");
+      await NetworkHelper().post(
+        ApisUrls().createEvaluation,
+        data: parameters.toJson(),
+      );
+      return true;
+    } catch (e) {
+      _logger.e("Failed to create evaluation: $e");
       rethrow;
     }
   }

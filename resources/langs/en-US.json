@@ -192,6 +192,8 @@
         "email_notifications_subtitle": "Receive alerts by email",
         "push_notifications": "Push notifications",
         "push_notifications_subtitle": "Alerts when new requests arrive",
+        "announcements": "Announcements",
+        "announcements_subtitle": "View announcements for supervisors",
         "privacy_security": "Privacy & security",
         "privacy_security_subtitle": "Manage privacy settings",
         "account_info": "Account information",
@@ -342,6 +344,15 @@
         "bluetooth_unavailable": "Bluetooth unavailable",
         "permission_denied": "Bluetooth permission needed",
         "error": "Couldn't start — try again"
+    },
+    "evaluation": {
+        "title": "Rate the Student's Performance",
+        "subtitle": "Choose a rating before completing the sign-off",
+        "excellent": "Excellent",
+        "good": "Good",
+        "acceptable": "Acceptable",
+        "poor": "Poor",
+        "submit_error": "Failed to submit evaluation"
     }
 
 }

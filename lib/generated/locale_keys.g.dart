@@ -188,6 +188,8 @@ abstract class  LocaleKeys {
   static const supervisor_more_email_notifications_subtitle = 'supervisor_more.email_notifications_subtitle';
   static const supervisor_more_push_notifications = 'supervisor_more.push_notifications';
   static const supervisor_more_push_notifications_subtitle = 'supervisor_more.push_notifications_subtitle';
+  static const supervisor_more_announcements = 'supervisor_more.announcements';
+  static const supervisor_more_announcements_subtitle = 'supervisor_more.announcements_subtitle';
   static const supervisor_more_privacy_security = 'supervisor_more.privacy_security';
   static const supervisor_more_privacy_security_subtitle = 'supervisor_more.privacy_security_subtitle';
   static const supervisor_more_account_info = 'supervisor_more.account_info';
@@ -332,5 +334,13 @@ abstract class  LocaleKeys {
   static const live_co_sign_permission_denied = 'live_co_sign.permission_denied';
   static const live_co_sign_error = 'live_co_sign.error';
   static const live_co_sign = 'live_co_sign';
+  static const evaluation_title = 'evaluation.title';
+  static const evaluation_subtitle = 'evaluation.subtitle';
+  static const evaluation_excellent = 'evaluation.excellent';
+  static const evaluation_good = 'evaluation.good';
+  static const evaluation_acceptable = 'evaluation.acceptable';
+  static const evaluation_poor = 'evaluation.poor';
+  static const evaluation_submit_error = 'evaluation.submit_error';
+  static const evaluation = 'evaluation';
 
 }

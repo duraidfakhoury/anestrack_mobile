@@ -208,6 +208,8 @@ class CodegenLoader extends AssetLoader{
     "email_notifications_subtitle": "تلقي تنبيهات عبر البريد الإلكتروني",
     "push_notifications": "الإشعارات الفورية",
     "push_notifications_subtitle": "تنبيهات عند ورود طلبات جديدة",
+    "announcements": "الإعلانات",
+    "announcements_subtitle": "عرض الإعلانات الخاصة بالمشرفين",
     "privacy_security": "الخصوصية والأمان",
     "privacy_security_subtitle": "إدارة إعدادات الخصوصية",
     "account_info": "معلومات الحساب",
@@ -358,6 +360,15 @@ class CodegenLoader extends AssetLoader{
     "bluetooth_unavailable": "البلوتوث غير متاح",
     "permission_denied": "إذن البلوتوث مطلوب",
     "error": "تعذّر التفعيل — حاول مرة أخرى"
+  },
+  "evaluation": {
+    "title": "تقييم أداء الطالب",
+    "subtitle": "اختر تقييماً قبل إتمام التوقيع",
+    "excellent": "ممتاز",
+    "good": "جيد",
+    "acceptable": "مقبول",
+    "poor": "ضعيف",
+    "submit_error": "تعذّر إرسال التقييم"
   }
 };
 static const Map<String,dynamic> _en_US = {
@@ -554,6 +565,8 @@ static const Map<String,dynamic> _en_US = {
     "email_notifications_subtitle": "Receive alerts by email",
     "push_notifications": "Push notifications",
     "push_notifications_subtitle": "Alerts when new requests arrive",
+    "announcements": "Announcements",
+    "announcements_subtitle": "View announcements for supervisors",
     "privacy_security": "Privacy & security",
     "privacy_security_subtitle": "Manage privacy settings",
     "account_info": "Account information",
@@ -704,6 +717,15 @@ static const Map<String,dynamic> _en_US = {
     "bluetooth_unavailable": "Bluetooth unavailable",
     "permission_denied": "Bluetooth permission needed",
     "error": "Couldn't start — try again"
+  },
+  "evaluation": {
+    "title": "Rate the Student's Performance",
+    "subtitle": "Choose a rating before completing the sign-off",
+    "excellent": "Excellent",
+    "good": "Good",
+    "acceptable": "Acceptable",
+    "poor": "Poor",
+    "submit_error": "Failed to submit evaluation"
   }
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"ar_SY": _ar_SY, "en_US": _en_US};

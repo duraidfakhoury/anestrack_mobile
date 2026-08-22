@@ -192,6 +192,8 @@
         "email_notifications_subtitle": "تلقي تنبيهات عبر البريد الإلكتروني",
         "push_notifications": "الإشعارات الفورية",
         "push_notifications_subtitle": "تنبيهات عند ورود طلبات جديدة",
+        "announcements": "الإعلانات",
+        "announcements_subtitle": "عرض الإعلانات الخاصة بالمشرفين",
         "privacy_security": "الخصوصية والأمان",
         "privacy_security_subtitle": "إدارة إعدادات الخصوصية",
         "account_info": "معلومات الحساب",
@@ -342,5 +344,14 @@
         "bluetooth_unavailable": "البلوتوث غير متاح",
         "permission_denied": "إذن البلوتوث مطلوب",
         "error": "تعذّر التفعيل — حاول مرة أخرى"
+    },
+    "evaluation": {
+        "title": "تقييم أداء الطالب",
+        "subtitle": "اختر تقييماً قبل إتمام التوقيع",
+        "excellent": "ممتاز",
+        "good": "جيد",
+        "acceptable": "مقبول",
+        "poor": "ضعيف",
+        "submit_error": "تعذّر إرسال التقييم"
     }
 }

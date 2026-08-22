@@ -11,6 +11,7 @@ import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/p
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/ble_debug_supervisor_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/co_sign_scan_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/widgets/co_sign_code_sheet.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/widgets/evaluation_rating_sheet.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
@@ -61,7 +62,24 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
     ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
-  void _confirm(Procedure p, String decision) {
+  /// Rating step (`createEvaluation`) shown before a co-sign or a "Confirm"
+  /// decision — not before "Reject", which isn't rating anything. Returns
+  /// whether an evaluation was submitted (or wasn't needed).
+  Future<bool> _evaluate(String procedureId) async {
+    final rated = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EvaluationRatingSheet(procedureId: procedureId),
+    );
+    return rated == true;
+  }
+
+  Future<void> _confirm(Procedure p, String decision) async {
+    if (decision == 'Confirm') {
+      if (!await _evaluate(p.id)) return;
+      if (!mounted) return;
+    }
     _confirmBloc.add(
       SubmitConfirmEvent(
         ConfirmProcedureParameters(id: p.id, decision: decision),
@@ -70,7 +88,9 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
   }
 
   /// Server-mediated fallback co-sign from the pending list (no proximity proof).
-  void _coSignById(Procedure p) {
+  Future<void> _coSignById(Procedure p) async {
+    if (!await _evaluate(p.id)) return;
+    if (!mounted) return;
     _coSignBloc.add(SubmitCoSignEvent(CoSignParameters(id: p.id)));
   }
 

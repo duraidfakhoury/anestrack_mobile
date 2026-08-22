@@ -7,6 +7,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/li
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/create_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/evaluation_parameters.dart';
 
 abstract class ProcedureRepository {
   /// Student — list procedures (with optional filters).
@@ -35,4 +36,9 @@ abstract class ProcedureRepository {
 
   /// Supervisor — everything awaiting this supervisor (co-signs + confirmations).
   Future<Either<Failure, List<Procedure>>> listPendingForSupervisor();
+
+  /// Supervisor — rate the student's performance on a procedure.
+  Future<Either<Failure, bool>> createEvaluation(
+    EvaluationParameters parameters,
+  );
 }

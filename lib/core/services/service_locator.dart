@@ -31,6 +31,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/sync
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/co_sign_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_co_sign_context_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/confirm_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/create_evaluation_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_pending_for_supervisor_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_hospitals_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_procedure_types_usecase.dart';
@@ -58,6 +59,7 @@ import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/p
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_context_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/co_sign_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/confirm_action_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/evaluation_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/live_co_sign_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source_impl.dart';
@@ -336,6 +338,9 @@ class ServicesLocator {
     sl.registerLazySingleton<ConfirmProcedureUseCase>(
       () => ConfirmProcedureUseCase(sl<ProcedureRepository>()),
     );
+    sl.registerLazySingleton<CreateEvaluationUseCase>(
+      () => CreateEvaluationUseCase(sl<ProcedureRepository>()),
+    );
     sl.registerLazySingleton<ListPendingForSupervisorUseCase>(
       () => ListPendingForSupervisorUseCase(sl<ProcedureRepository>()),
     );
@@ -473,6 +478,9 @@ class ServicesLocator {
     );
     sl.registerFactory<ConfirmActionBloc>(
       () => ConfirmActionBloc(sl<ConfirmProcedureUseCase>()),
+    );
+    sl.registerFactory<EvaluationActionBloc>(
+      () => EvaluationActionBloc(sl<CreateEvaluationUseCase>()),
     );
     sl.registerFactory<LiveCoSignBloc>(
       () => LiveCoSignBloc(sl<SupervisorCodeBleScanner>()),

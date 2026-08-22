@@ -5,6 +5,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/li
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/create_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/evaluation_parameters.dart';
 
 abstract class ProcedureDataSource {
   Future<List<ProcedureModel>> listProcedures(
@@ -24,4 +25,7 @@ abstract class ProcedureDataSource {
   );
 
   Future<List<ProcedureModel>> listPendingForSupervisor();
+
+  /// Supervisor — rate the student's performance on a procedure.
+  Future<bool> createEvaluation(EvaluationParameters parameters);
 }

@@ -4,6 +4,7 @@ import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/core/utils/base_state.dart';
 import 'package:anestrack_mobile/modules/auth/presentation/blocs/logout_bloc/logout_bloc.dart';
 import 'package:anestrack_mobile/modules/auth/presentation/routes/login_route.dart';
+import 'package:anestrack_mobile/modules/common/announcements/presentation/routes/announcements_route.dart';
 import 'package:anestrack_mobile/modules/common/profile/domain/entities/current_user.dart';
 import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -94,6 +95,20 @@ class _SupervisorMoreScreenState extends State<SupervisorMoreScreen> {
                               onChanged: (val) {
                                 setState(() => _pushNotifications = val);
                               },
+                            ),
+                            const SizedBox(height: 12),
+                            _buildNavigationCard(
+                              icon: LucideIcons.megaphone,
+                              iconColor: AppColors.blue600,
+                              iconBg: AppColors.blue100,
+                              title: 'supervisor_more.announcements'.tr(
+                                context: context,
+                              ),
+                              subtitle:
+                                  'supervisor_more.announcements_subtitle'
+                                      .tr(context: context),
+                              onTap: () =>
+                                  context.push(AnnouncementsRoute.name),
                             ),
                             const SizedBox(height: 12),
                             _buildNavigationCard(

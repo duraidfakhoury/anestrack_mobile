@@ -40,6 +40,7 @@ class ApisUrls {
   String get confirmProcedure => '$_baseApiUrl/functions/confirmProcedure';
   String get listPendingForSupervisor =>
       '$_baseApiUrl/functions/listPendingForSupervisor';
+  String get createEvaluation => '$_baseApiUrl/functions/createEvaluation';
 
   /// Supervisor Students Feature APIs
   /// Uses the supervisor-scoped `listStudents` (auth: any Supervisor) rather

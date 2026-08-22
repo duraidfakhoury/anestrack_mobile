@@ -9,6 +9,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/li
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/create_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/evaluation_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/procedure_repository.dart';
 
 class ProcedureRepositoryImpl extends ProcedureRepository {
@@ -63,6 +64,15 @@ class ProcedureRepositoryImpl extends ProcedureRepository {
   Future<Either<Failure, List<Procedure>>> listPendingForSupervisor() {
     return AppErrorsHandler().defaultHandleEither(
       () => dataSource.listPendingForSupervisor(),
+    );
+  }
+
+  @override
+  Future<Either<Failure, bool>> createEvaluation(
+    EvaluationParameters parameters,
+  ) {
+    return AppErrorsHandler().defaultHandleEither(
+      () => dataSource.createEvaluation(parameters),
     );
   }
 }
