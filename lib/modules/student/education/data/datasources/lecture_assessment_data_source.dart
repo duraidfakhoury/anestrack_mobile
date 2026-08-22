@@ -9,6 +9,13 @@ abstract class LectureAssessmentDataSource {
 
   Future<AssessmentResultModel> submitAnswers({
     required String assessmentId,
-    required List<int> answers,
+    required List<int?> answers,
+  });
+
+  /// The graded review with per-question breakdown (integration §11).
+  /// Throws when no submission exists yet (Parse code 101).
+  Future<AssessmentResultModel> getAssessmentResult({
+    required String assessmentId,
+    String? studentId,
   });
 }

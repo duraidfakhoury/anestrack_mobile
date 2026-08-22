@@ -13,19 +13,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-const _maxFileSizeBytes = 15 * 1024 * 1024; // 15 MB, matches Parse's default cap
+// Inline base64 route caps at ~7 MB of real file: the JSON body limit is
+// 10 MB and base64 inflates by a third (integration §7A). Larger documents /
+// videos are published via a URL instead.
+const _maxFileSizeBytes = 7 * 1024 * 1024;
 
 const _contentTypes = ['Video', 'Document', 'Text'];
 
-const _documentMimeByExtension = {
-  'pdf': 'application/pdf',
-  'doc': 'application/msword',
-  'docx':
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'ppt': 'application/vnd.ms-powerpoint',
-  'pptx':
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-};
+const _documentExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
 
 class CreateLectureScreen extends StatefulWidget {
   const CreateLectureScreen({super.key});
@@ -41,11 +36,13 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _contentUrlController = TextEditingController();
+  final TextEditingController _mainGoalsController = TextEditingController();
 
   String _contentType = 'Video';
   String? _fileBase64;
   String? _fileName;
   String? _fileError;
+  bool _withTest = false;
 
   @override
   void initState() {
@@ -58,6 +55,7 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _contentUrlController.dispose();
+    _mainGoalsController.dispose();
     _bloc.close();
     super.dispose();
   }
@@ -76,7 +74,7 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
   Future<void> _pickFile() async {
     final files = await FilePickerPlatform.instance.pickFiles(
       type: FileType.custom,
-      allowedExtensions: _documentMimeByExtension.keys.toList(),
+      allowedExtensions: _documentExtensions,
     );
     if (files.isEmpty) return;
     final picked = files.first;
@@ -85,18 +83,18 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
 
     if (bytes.lengthInBytes > _maxFileSizeBytes) {
       setState(() {
-        _fileError = LocaleKeys.library_file_too_large.tr();
+        _fileError = LocaleKeys.supervisor_academic_file_too_large.tr();
         _fileBase64 = null;
         _fileName = null;
       });
       return;
     }
 
-    final extension = picked.name.split('.').last.toLowerCase();
-    final mime = _documentMimeByExtension[extension] ?? 'application/octet-stream';
+    // Raw base64 (no data-URI prefix) — createLecture expects
+    // file: {base64, name} (integration §7A).
     final base64Body = base64Encode(bytes).replaceAll(RegExp(r'[\r\n\s]'), '');
     setState(() {
-      _fileBase64 = 'data:$mime;base64,$base64Body';
+      _fileBase64 = base64Body;
       _fileName = picked.name;
       _fileError = null;
     });
@@ -113,14 +111,11 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
   void _submit() {
     final isFormValid = _formKey.currentState!.validate();
 
-    final contentUrl = _isDocument
-        ? _fileBase64
-        : _contentUrlController.text.trim();
+    // A Document is published as an uploaded file; Text/Video use the text
+    // field (body / external URL respectively).
     var hasError = false;
-    if (contentUrl == null || contentUrl.isEmpty) {
-      if (_isDocument) {
-        _fileError = LocaleKeys.supervisor_academic_attach_document_file.tr();
-      }
+    if (_isDocument && (_fileBase64 == null || _fileBase64!.isEmpty)) {
+      _fileError = LocaleKeys.supervisor_academic_attach_document_file.tr();
       hasError = true;
     }
 
@@ -129,13 +124,29 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
       return;
     }
 
+    final goals = _mainGoalsController.text
+        .split('\n')
+        .map((g) => g.trim())
+        .where((g) => g.isNotEmpty)
+        .toList();
+    final contentField = _contentUrlController.text.trim();
+
     _bloc.add(
       SubmitCreateLectureEvent(
         CreateLectureParameters(
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
           contentType: _contentType,
-          contentUrl: contentUrl!,
+          contentText: _isText ? contentField : null,
+          contentUrl: (!_isText && !_isDocument) ? contentField : null,
+          file: _isDocument && _fileBase64 != null
+              ? LectureUploadFile.base64(
+                  base64: _fileBase64!,
+                  name: _fileName ?? 'document',
+                )
+              : null,
+          mainGoals: goals,
+          withTest: _withTest,
         ),
       ),
     );
@@ -247,7 +258,35 @@ class _CreateLectureScreenState extends State<CreateLectureScreen> {
                           : null,
                     ),
                   ],
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 16),
+
+                  _Label(LocaleKeys.supervisor_academic_field_main_goals.tr()),
+                  TextFormField(
+                    controller: _mainGoalsController,
+                    maxLines: 4,
+                    decoration: _decoration(
+                      hint: LocaleKeys
+                          .supervisor_academic_field_main_goals_hint
+                          .tr(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    value: _withTest,
+                    activeThumbColor: AppColors.supervisorPrimary,
+                    title: Text(
+                      LocaleKeys.supervisor_academic_field_with_test.tr(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.slate600,
+                      ),
+                    ),
+                    onChanged: (v) => setState(() => _withTest = v),
+                  ),
+                  const SizedBox(height: 20),
 
                   SizedBox(
                     width: double.infinity,

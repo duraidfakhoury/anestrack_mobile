@@ -3,6 +3,7 @@ import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/entities/lecture_assessment.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/assessment_result_bloc.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/blocs/assessment_review_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_assessment_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/routes/quiz_result_args.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_quiz_result_route.dart';
@@ -24,6 +25,9 @@ class LectureQuizScreen extends StatefulWidget {
 class _LectureQuizScreenState extends State<LectureQuizScreen> {
   late final LectureAssessmentBloc _assessmentBloc;
   late final AssessmentResultBloc _resultBloc;
+  late final AssessmentReviewBloc _reviewBloc;
+
+  /// One selected choice index per answered question. Absent = skipped (§10).
   final Map<int, int> _selectedAnswers = {};
 
   @override
@@ -32,13 +36,22 @@ class _LectureQuizScreenState extends State<LectureQuizScreen> {
     _assessmentBloc = sl<LectureAssessmentBloc>()
       ..add(FetchAssessmentEvent(widget.lectureId));
     _resultBloc = sl<AssessmentResultBloc>();
+    _reviewBloc = sl<AssessmentReviewBloc>();
   }
 
   @override
   void dispose() {
     _assessmentBloc.close();
     _resultBloc.close();
+    _reviewBloc.close();
     super.dispose();
+  }
+
+  void _openReview(LectureAssessment assessment) {
+    context.push(
+      LectureQuizResultRoute.name,
+      extra: QuizResultArgs(assessment: assessment),
+    );
   }
 
   @override
@@ -47,6 +60,7 @@ class _LectureQuizScreenState extends State<LectureQuizScreen> {
       providers: [
         BlocProvider.value(value: _assessmentBloc),
         BlocProvider.value(value: _resultBloc),
+        BlocProvider.value(value: _reviewBloc),
       ],
       child: Scaffold(
         backgroundColor: AppColors.slate50,
@@ -60,12 +74,10 @@ class _LectureQuizScreenState extends State<LectureQuizScreen> {
             if (!resultState.isSuccess || resultState.data == null) return;
             final assessment = _assessmentBloc.state.data;
             if (assessment == null) return;
+            // Show the graded breakdown, fetched fresh from the server (§11).
             context.pushReplacement(
               LectureQuizResultRoute.name,
-              extra: QuizResultArgs(
-                assessment: assessment,
-                result: resultState.data!,
-              ),
+              extra: QuizResultArgs(assessment: assessment),
             );
           },
           child: BlocBuilder<LectureAssessmentBloc, LectureAssessmentState>(
@@ -88,11 +100,19 @@ class _LectureQuizScreenState extends State<LectureQuizScreen> {
                   message: LocaleKeys.education_no_quiz_available.tr(),
                 );
               }
+              // Now that we know the assessment id, pre-check whether the
+              // student has already submitted (§15).
+              if (_reviewBloc.state.isInit) {
+                _reviewBloc.add(
+                  FetchAssessmentResultEvent(assessmentId: assessment.id),
+                );
+              }
               return _QuizBody(
                 assessment: assessment,
                 selectedAnswers: _selectedAnswers,
                 onSelect: (qIndex, choiceIndex) =>
                     setState(() => _selectedAnswers[qIndex] = choiceIndex),
+                onReview: () => _openReview(assessment),
               );
             },
           ),
@@ -107,17 +127,63 @@ class _QuizBody extends StatelessWidget {
     required this.assessment,
     required this.selectedAnswers,
     required this.onSelect,
+    required this.onReview,
   });
 
   final LectureAssessment assessment;
   final Map<int, int> selectedAnswers;
   final void Function(int questionIndex, int choiceIndex) onSelect;
+  final VoidCallback onReview;
 
   @override
   Widget build(BuildContext context) {
-    final allAnswered = selectedAnswers.length == assessment.questions.length;
     return Column(
       children: [
+        // If the student already submitted, offer to review their answers.
+        BlocBuilder<AssessmentReviewBloc, AssessmentReviewState>(
+          builder: (context, reviewState) {
+            final review = reviewState.data;
+            if (!reviewState.isSuccess || review == null) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.blue100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    LucideIcons.circleCheck,
+                    size: 18,
+                    color: AppColors.blue600,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      LocaleKeys.education_already_submitted.tr(
+                        namedArgs: {
+                          'score': review.percentage.toStringAsFixed(0),
+                        },
+                      ),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.slate700,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: onReview,
+                    child: Text(LocaleKeys.education_review_answers.tr()),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
@@ -145,8 +211,7 @@ class _QuizBody extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     ...List.generate(question.choices.length, (choiceIndex) {
-                      final selected =
-                          selectedAnswers[qIndex] == choiceIndex;
+                      final selected = selectedAnswers[qIndex] == choiceIndex;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: InkWell(
@@ -203,43 +268,67 @@ class _QuizBody extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: double.infinity,
-            child: BlocBuilder<AssessmentResultBloc, AssessmentResultState>(
-              builder: (context, resultState) {
-                return ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.studentPrimary,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+          child: BlocBuilder<AssessmentResultBloc, AssessmentResultState>(
+            builder: (context, resultState) {
+              final answeredCount = selectedAnswers.length;
+              final total = assessment.questions.length;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (answeredCount < total)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        LocaleKeys.education_answered_progress.tr(
+                          namedArgs: {
+                            'answered': '$answeredCount',
+                            'total': '$total',
+                          },
+                        ),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.slate500,
+                        ),
+                      ),
+                    ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.studentPrimary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: answeredCount == 0 || resultState.isLoading
+                          ? null
+                          : () {
+                              // Keep positions; unanswered = null (§10).
+                              final ordered = List<int?>.generate(
+                                total,
+                                (i) => selectedAnswers[i],
+                              );
+                              context.read<AssessmentResultBloc>().add(
+                                SubmitAnswersEvent(
+                                  assessmentId: assessment.id,
+                                  answers: ordered,
+                                ),
+                              );
+                            },
+                      child: resultState.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.white,
+                              ),
+                            )
+                          : Text(LocaleKeys.education_submit_answers.tr()),
+                    ),
                   ),
-                  onPressed: allAnswered && !resultState.isLoading
-                      ? () {
-                          final ordered = List.generate(
-                            assessment.questions.length,
-                            (i) => selectedAnswers[i]!,
-                          );
-                          context.read<AssessmentResultBloc>().add(
-                            SubmitAnswersEvent(
-                              assessmentId: assessment.id,
-                              answers: ordered,
-                            ),
-                          );
-                        }
-                      : null,
-                  child: resultState.isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.white,
-                          ),
-                        )
-                      : Text(LocaleKeys.education_submit_answers.tr()),
-                );
-              },
-            ),
+                ],
+              );
+            },
           ),
         ),
       ],

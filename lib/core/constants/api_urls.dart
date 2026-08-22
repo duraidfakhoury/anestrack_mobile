@@ -82,7 +82,22 @@ class ApisUrls {
   String get generateAISummary => '$_baseApiUrl/functions/generateAISummary';
   String get listLectureAssessments =>
       '$_baseApiUrl/functions/listLectureAssessments';
+  String get getLectureAssessment =>
+      '$_baseApiUrl/functions/getLectureAssessment';
   String get submitAnswers => '$_baseApiUrl/functions/submitAnswers';
+  String get getAssessmentResult =>
+      '$_baseApiUrl/functions/getAssessmentResult';
+
+  /// Lecture attendance
+  String get recordAttendance => '$_baseApiUrl/functions/recordAttendance';
+  String get updateAttendance => '$_baseApiUrl/functions/updateAttendance';
+  String get listAttendance => '$_baseApiUrl/functions/listAttendance';
+
+  /// Lecture rating
+  String get createLectureEvaluation =>
+      '$_baseApiUrl/functions/createLectureEvaluation';
+  String get listLectureEvaluations =>
+      '$_baseApiUrl/functions/listLectureEvaluations';
 
   /// Library — research papers
   String get listResearchPapers => '$_baseApiUrl/functions/listResearchPapers';

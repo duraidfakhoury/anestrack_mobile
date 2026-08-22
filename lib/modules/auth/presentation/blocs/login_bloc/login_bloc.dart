@@ -39,6 +39,9 @@ class LoginBloc extends Bloc<LoginEvent, BaseState<LoginResponse>> {
         // Register this device for push notifications now that a session
         // token exists — also fire-and-forget, same reasoning.
         FirebaseMessagingService.instance.registerCurrentDeviceIfLoggedIn();
+        // Subscribe to the broadcast channels (announcements + new lectures,
+        // integration §14).
+        FirebaseMessagingService.instance.subscribeToDefaultChannels();
         emit(state.successNotNull(loginResponse));
       },
     );

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:logger/logger.dart';
 import 'package:anestrack_mobile/core/constants/api_urls.dart';
 import 'package:anestrack_mobile/core/network/network_helper.dart';
@@ -50,13 +48,14 @@ class LectureAssessmentDataSourceImpl extends LectureAssessmentDataSource {
   @override
   Future<AssessmentResultModel> submitAnswers({
     required String assessmentId,
-    required List<int> answers,
+    required List<int?> answers,
   }) async {
     try {
       _logger.i('Submitting answers for assessment $assessmentId');
+      // A real JSON array is preferred (§10); nulls mark skipped questions.
       final response = await NetworkHelper().post(
         ApisUrls().submitAnswers,
-        data: {'assessmentId': assessmentId, 'answers': jsonEncode(answers)},
+        data: {'assessmentId': assessmentId, 'answers': answers},
       );
       final body = _unwrap(response.data);
       final result = AssessmentResultModel.fromJson(
@@ -70,10 +69,40 @@ class LectureAssessmentDataSourceImpl extends LectureAssessmentDataSource {
               answers: result.answers,
               score: result.score,
               correctCount: result.correctCount,
+              totalQuestions: result.totalQuestions,
+              answeredCount: result.answeredCount,
+              percentage: result.percentage,
+              breakdown: result.breakdown,
+              submissionId: result.submissionId,
+              submittedAt: result.submittedAt,
             )
           : result;
     } catch (e) {
       _logger.e('Failed to submit answers for assessment $assessmentId: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<AssessmentResultModel> getAssessmentResult({
+    required String assessmentId,
+    String? studentId,
+  }) async {
+    try {
+      _logger.i('Fetching result for assessment $assessmentId');
+      final response = await NetworkHelper().get(
+        ApisUrls().getAssessmentResult,
+        data: {
+          'assessmentId': assessmentId,
+          if (studentId != null) 'studentId': studentId,
+        },
+      );
+      final body = _unwrap(response.data);
+      return AssessmentResultModel.fromJson(
+        Map<String, dynamic>.from(body as Map),
+      );
+    } catch (e) {
+      _logger.e('Failed to fetch result for assessment $assessmentId: $e');
       rethrow;
     }
   }

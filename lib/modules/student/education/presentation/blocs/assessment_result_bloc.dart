@@ -8,7 +8,9 @@ abstract class AssessmentResultEvent {}
 
 class SubmitAnswersEvent extends AssessmentResultEvent {
   final String assessmentId;
-  final List<int> answers;
+
+  /// Positional answers; `null` marks a skipped question (integration §10).
+  final List<int?> answers;
   SubmitAnswersEvent({required this.assessmentId, required this.answers});
 }
 

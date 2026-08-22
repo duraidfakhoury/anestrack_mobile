@@ -14,4 +14,12 @@ abstract class LectureAssessmentRepository {
   Future<Either<Failure, AssessmentResult>> submitAnswers(
     SubmitAnswersParameters params,
   );
+
+  /// The graded review with breakdown. Returns `null` on the right side when
+  /// the student has not submitted yet (Parse code 101) — the caller uses that
+  /// to switch between "Take the test" and "Review" (integration §11/§15).
+  Future<Either<Failure, AssessmentResult?>> getAssessmentResult({
+    required String assessmentId,
+    String? studentId,
+  });
 }

@@ -91,9 +91,12 @@ class FirebaseMessagingService {
     }
 
     // Log the token and, if the user is already logged in (app relaunch),
-    // register this device straight away.
+    // register this device and (re)subscribe to the broadcast channels.
     await logToken();
     await registerCurrentDeviceIfLoggedIn();
+    if (CacheService().hasToken) {
+      await subscribeToDefaultChannels();
+    }
     _messaging.onTokenRefresh.listen((token) {
       _logger.i('FCM token refreshed: $token');
       registerCurrentDeviceIfLoggedIn();
@@ -229,8 +232,7 @@ class FirebaseMessagingService {
     );
   }
 
-  /// Subscribe the device to a topic ("channel"). Wired by the caller once the
-  /// channel rules are defined.
+  /// Subscribe the device to a topic ("channel").
   Future<void> subscribeToChannel(String channel) async {
     await _messaging.subscribeToTopic(channel);
     _logger.i('Subscribed to channel: $channel');
@@ -239,5 +241,20 @@ class FirebaseMessagingService {
   Future<void> unsubscribeFromChannel(String channel) async {
     await _messaging.unsubscribeFromTopic(channel);
     _logger.i('Unsubscribed from channel: $channel');
+  }
+
+  /// The broadcast topic every device subscribes to at login. Announcements
+  /// and new-lecture pushes both fan out through it (integration §14).
+  static const String kAllChannel = 'all';
+
+  /// Subscribe to the channels every logged-in user gets. Called on login
+  /// success and on relaunch while a session exists. Fire-and-forget.
+  Future<void> subscribeToDefaultChannels() async {
+    if (!isPushNotificationSupportedPlatform) return;
+    try {
+      await subscribeToChannel(kAllChannel);
+    } catch (e) {
+      _logger.e('Failed to subscribe to default channels: $e');
+    }
   }
 }

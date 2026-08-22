@@ -105,23 +105,37 @@ import 'package:anestrack_mobile/modules/student/education/data/datasources/ai_s
 import 'package:anestrack_mobile/modules/student/education/data/datasources/ai_summary_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_assessment_data_source.dart';
 import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_assessment_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_attendance_data_source.dart';
+import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_attendance_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_evaluation_data_source.dart';
+import 'package:anestrack_mobile/modules/student/education/data/datasources/lecture_evaluation_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/education/data/repositories/lecture_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/education/data/repositories/ai_summary_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/education/data/repositories/lecture_assessment_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/education/data/repositories/lecture_attendance_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/education/data/repositories/lecture_evaluation_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/repositories/lecture_repository.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/repositories/ai_summary_repository.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/repositories/lecture_assessment_repository.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/repositories/lecture_attendance_repository.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/repositories/lecture_evaluation_repository.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/list_lectures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/get_lecture_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/create_lecture_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/generate_ai_summary_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/get_lecture_assessment_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/domain/usecases/submit_answers_usecase.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/usecases/get_assessment_result_usecase.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/usecases/lecture_attendance_usecases.dart';
+import 'package:anestrack_mobile/modules/student/education/domain/usecases/create_lecture_evaluation_usecase.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lectures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_detail_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/ai_summary_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_assessment_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/assessment_result_bloc.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/blocs/assessment_review_bloc.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_attendance_bloc.dart';
+import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_evaluation_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/acadamic/presentation/blocs/create_lecture_bloc.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source.dart';
 import 'package:anestrack_mobile/modules/student/library/data/datasources/research_data_source_impl.dart';
@@ -232,6 +246,12 @@ class ServicesLocator {
     sl.registerLazySingleton<LectureAssessmentDataSource>(
       () => LectureAssessmentDataSourceImpl(),
     );
+    sl.registerLazySingleton<LectureAttendanceDataSource>(
+      () => LectureAttendanceDataSourceImpl(),
+    );
+    sl.registerLazySingleton<LectureEvaluationDataSource>(
+      () => LectureEvaluationDataSourceImpl(),
+    );
 
     // Library (research) Data Source
     sl.registerLazySingleton<ResearchDataSource>(
@@ -301,6 +321,12 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<LectureAssessmentRepository>(
       () => LectureAssessmentRepositoryImpl(sl<LectureAssessmentDataSource>()),
+    );
+    sl.registerLazySingleton<LectureAttendanceRepository>(
+      () => LectureAttendanceRepositoryImpl(sl<LectureAttendanceDataSource>()),
+    );
+    sl.registerLazySingleton<LectureEvaluationRepository>(
+      () => LectureEvaluationRepositoryImpl(sl<LectureEvaluationDataSource>()),
     );
     sl.registerLazySingleton<ResearchRepository>(
       () => ResearchRepositoryImpl(sl<ResearchDataSource>()),
@@ -409,6 +435,18 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<SubmitAnswersUseCase>(
       () => SubmitAnswersUseCase(sl<LectureAssessmentRepository>()),
+    );
+    sl.registerLazySingleton<GetAssessmentResultUseCase>(
+      () => GetAssessmentResultUseCase(sl<LectureAssessmentRepository>()),
+    );
+    sl.registerLazySingleton<EnsureAttendanceUseCase>(
+      () => EnsureAttendanceUseCase(sl<LectureAttendanceRepository>()),
+    );
+    sl.registerLazySingleton<MarkAttendanceCompletedUseCase>(
+      () => MarkAttendanceCompletedUseCase(sl<LectureAttendanceRepository>()),
+    );
+    sl.registerLazySingleton<CreateLectureEvaluationUseCase>(
+      () => CreateLectureEvaluationUseCase(sl<LectureEvaluationRepository>()),
     );
     sl.registerLazySingleton<ListResearchPapersUseCase>(
       () => ListResearchPapersUseCase(sl<ResearchRepository>()),
@@ -551,6 +589,18 @@ class ServicesLocator {
     );
     sl.registerFactory<AssessmentResultBloc>(
       () => AssessmentResultBloc(sl<SubmitAnswersUseCase>()),
+    );
+    sl.registerFactory<AssessmentReviewBloc>(
+      () => AssessmentReviewBloc(sl<GetAssessmentResultUseCase>()),
+    );
+    sl.registerFactory<LectureAttendanceBloc>(
+      () => LectureAttendanceBloc(
+        sl<EnsureAttendanceUseCase>(),
+        sl<MarkAttendanceCompletedUseCase>(),
+      ),
+    );
+    sl.registerFactory<LectureEvaluationBloc>(
+      () => LectureEvaluationBloc(sl<CreateLectureEvaluationUseCase>()),
     );
 
     // Library (research)
