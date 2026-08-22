@@ -39,7 +39,7 @@ class ProcedureModel extends Procedure {
 
   factory ProcedureModel.fromJson(Map<String, dynamic> json) {
     return ProcedureModel(
-      id: (json['objectId'] as String?) ?? '',
+      id: (json['objectId'] ?? json['id']) as String? ?? '',
       status: (json['status'] as String?) ?? 'Pending',
       patientName: (json['patientName'] as String?) ?? '',
       procedureDate: parseDate(json['procedureDate']),
@@ -82,8 +82,9 @@ class ProcedureModel extends Procedure {
 
   /// objectId of a pointer, whether included (nested object) or a bare pointer.
   static String? pointerId(dynamic value) {
-    if (value is Map && value['objectId'] != null) {
-      return value['objectId'] as String;
+    if (value is Map) {
+      final id = value['objectId'] ?? value['id'];
+      if (id != null) return id as String;
     }
     if (value is String) return value; // already an id
     return null;
