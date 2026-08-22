@@ -99,7 +99,9 @@ class CreateProcedureBloc
       isOffline: parameters.isOffline,
       isEmergency: parameters.isEmergency,
       hospitalId: parameters.hospitalId,
-      procedureTypeId: parameters.procedureTypeId,
+      procedureTypeId: parameters.procedureTypeIds.isNotEmpty
+          ? parameters.procedureTypeIds.first
+          : null,
       supervisorId: parameters.supervisorId,
     );
   }

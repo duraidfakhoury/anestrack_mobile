@@ -9,7 +9,11 @@ extension CreateProcedureParametersLocalCodec on CreateProcedureParameters {
   static CreateProcedureParameters fromJson(Map<String, dynamic> json) {
     return CreateProcedureParameters(
       hospitalId: json['hospitalId'] as String,
-      procedureTypeId: json['procedureTypeId'] as String,
+      // Tolerates a locally-queued item written by an older app version
+      // (singular `procedureTypeId`) alongside the current `procedureTypeIds`.
+      procedureTypeIds:
+          (json['procedureTypeIds'] as List?)?.map((e) => e as String).toList() ??
+          [json['procedureTypeId'] as String],
       patientName: json['patientName'] as String,
       procedureDate: json['procedureDate'] as String,
       supervisorId: json['supervisorId'] as String?,

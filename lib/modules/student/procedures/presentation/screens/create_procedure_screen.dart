@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure_type.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/supervisors_bloc/supervisors_bloc.dart';
@@ -41,12 +42,16 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
   final _formKey = GlobalKey<FormState>();
 
   String? _selectedHospitalId;
-  String? _selectedProcedureTypeId;
+  final Set<String> _selectedProcedureTypeIds = {};
   String? _selectedSupervisorId;
 
   final TextEditingController _patientNameController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _procedureTypeSearchController =
+      TextEditingController();
+  String _procedureTypeSearchQuery = '';
+  String _procedureTypeCategoryFilter = 'all';
 
   bool _requestLiveCoSign = false;
   bool _isEmergency = false;
@@ -73,6 +78,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     _patientNameController.dispose();
     _notesController.dispose();
     _dateController.dispose();
+    _procedureTypeSearchController.dispose();
     _createProcedureBloc.close();
     super.dispose();
   }
@@ -144,7 +150,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
 
     final parameters = CreateProcedureParameters(
       hospitalId: _selectedHospitalId!,
-      procedureTypeId: _selectedProcedureTypeId!,
+      procedureTypeIds: _selectedProcedureTypeIds.toList(),
       patientName: _patientNameController.text.trim(),
       procedureDate: _dateController.text,
       supervisorId: _selectedSupervisorId,
@@ -262,7 +268,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
                         _buildHospitalDropdown(),
                         const SizedBox(height: 16),
 
-                        _buildLabel("نوع الإجراء"),
+                        _buildLabel("أنواع الإجراء (يمكن اختيار أكثر من نوع)"),
                         _buildProcedureTypeDropdown(),
                         const SizedBox(height: 16),
 
@@ -451,21 +457,179 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       builder: (context, state) {
         if (state.isLoading) return const _LoadingBar();
         final types = state.data ?? [];
-        return DropdownButtonFormField<String>(
-          value: _selectedProcedureTypeId,
-          isExpanded: true,
-          hint: const Text("اختر نوع الإجراء", style: _hintStyle),
-          decoration: _decoration(prefixIcon: LucideIcons.stethoscope),
-          items: types
-              .map(
-                (t) => DropdownMenuItem<String>(
-                  value: t.id,
-                  child: Text(t.name, style: const TextStyle(fontSize: 14)),
+        final byCategory = _procedureTypeCategoryFilter == 'all'
+            ? types
+            : types.where((t) => t.category == _procedureTypeCategoryFilter).toList();
+        final query = _procedureTypeSearchQuery.trim();
+        final filtered = query.isEmpty
+            ? byCategory
+            : byCategory
+                  .where(
+                    (t) => (t.nameAr ?? t.name).toLowerCase().contains(
+                      query.toLowerCase(),
+                    ),
+                  )
+                  .toList();
+        return FormField<Set<String>>(
+          initialValue: _selectedProcedureTypeIds,
+          validator: (v) =>
+              (v == null || v.isEmpty) ? 'يرجى اختيار نوع إجراء واحد على الأقل' : null,
+          builder: (field) {
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: field.hasError
+                      ? Colors.red
+                      : const Color(0xFFE5E7EB),
                 ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() => _selectedProcedureTypeId = v),
-          validator: (v) => v == null ? 'يرجى اختيار نوع الإجراء' : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_selectedProcedureTypeIds.isNotEmpty) ...[
+                    Text(
+                      'تم اختيار ${_selectedProcedureTypeIds.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _teal,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _CategoryFilterChip(
+                        label: 'الكل',
+                        selected: _procedureTypeCategoryFilter == 'all',
+                        onTap: () =>
+                            setState(() => _procedureTypeCategoryFilter = 'all'),
+                      ),
+                      _CategoryFilterChip(
+                        label: 'إجراءات',
+                        selected: _procedureTypeCategoryFilter ==
+                            ProcedureCategories.procedure,
+                        onTap: () => setState(
+                          () => _procedureTypeCategoryFilter =
+                              ProcedureCategories.procedure,
+                        ),
+                      ),
+                      _CategoryFilterChip(
+                        label: 'تقنيات',
+                        selected: _procedureTypeCategoryFilter ==
+                            ProcedureCategories.technique,
+                        onTap: () => setState(
+                          () => _procedureTypeCategoryFilter =
+                              ProcedureCategories.technique,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _procedureTypeSearchController,
+                    onChanged: (v) =>
+                        setState(() => _procedureTypeSearchQuery = v),
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'ابحث عن نوع الإجراء',
+                      hintStyle: _hintStyle,
+                      prefixIcon: const Icon(
+                        LucideIcons.search,
+                        size: 18,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                      suffixIcon: _procedureTypeSearchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(LucideIcons.x, size: 16),
+                              onPressed: () => setState(() {
+                                _procedureTypeSearchController.clear();
+                                _procedureTypeSearchQuery = '';
+                              }),
+                            ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE5E7EB),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    child: filtered.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              'لا توجد نتائج',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: filtered.map((t) {
+                                final selected = _selectedProcedureTypeIds
+                                    .contains(t.id);
+                                return FilterChip(
+                                  label: Text(
+                                    t.nameAr ?? t.name,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  selected: selected,
+                                  selectedColor: const Color(0xFFCCFBF1),
+                                  checkmarkColor: _teal,
+                                  backgroundColor: const Color(0xFFF9FAFB),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: BorderSide(
+                                      color: selected
+                                          ? _teal
+                                          : const Color(0xFFE5E7EB),
+                                    ),
+                                  ),
+                                  onSelected: (v) => setState(() {
+                                    if (v) {
+                                      _selectedProcedureTypeIds.add(t.id);
+                                    } else {
+                                      _selectedProcedureTypeIds.remove(t.id);
+                                    }
+                                    field.didChange(_selectedProcedureTypeIds);
+                                  }),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                  ),
+                  if (field.hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        field.errorText!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -714,6 +878,42 @@ class _LoadingBar extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.all(8.0),
       child: LinearProgressIndicator(color: _teal),
+    );
+  }
+}
+
+class _CategoryFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: _teal,
+      backgroundColor: const Color(0xFFF3F4F6),
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : const Color(0xFF4B5563),
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: selected ? Colors.transparent : const Color(0xFFE5E7EB),
+        ),
+      ),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
     );
   }
 }

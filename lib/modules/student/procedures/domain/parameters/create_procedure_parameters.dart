@@ -6,7 +6,12 @@ import 'package:equatable/equatable.dart';
 ///  - [isEmergency] true         -> Flow 3: tagged emergency (still async-confirmed).
 class CreateProcedureParameters extends Equatable {
   final String hospitalId;
-  final String procedureTypeId;
+
+  /// One or more procedure type ids logged for the same bedside event. The
+  /// backend collapses these into a single "session" (shared `sessionId`) —
+  /// one row per type, one co-sign code/decision resolves all of them. See
+  /// `integration-mobile.md` section 5.
+  final List<String> procedureTypeIds;
   final String patientName;
   final String procedureDate;
   final String? supervisorId;
@@ -21,7 +26,7 @@ class CreateProcedureParameters extends Equatable {
 
   const CreateProcedureParameters({
     required this.hospitalId,
-    required this.procedureTypeId,
+    required this.procedureTypeIds,
     required this.patientName,
     required this.procedureDate,
     this.supervisorId,
@@ -34,7 +39,7 @@ class CreateProcedureParameters extends Equatable {
 
   CreateProcedureParameters copyWith({
     String? hospitalId,
-    String? procedureTypeId,
+    List<String>? procedureTypeIds,
     String? patientName,
     String? procedureDate,
     String? supervisorId,
@@ -46,7 +51,7 @@ class CreateProcedureParameters extends Equatable {
   }) {
     return CreateProcedureParameters(
       hospitalId: hospitalId ?? this.hospitalId,
-      procedureTypeId: procedureTypeId ?? this.procedureTypeId,
+      procedureTypeIds: procedureTypeIds ?? this.procedureTypeIds,
       patientName: patientName ?? this.patientName,
       procedureDate: procedureDate ?? this.procedureDate,
       supervisorId: supervisorId ?? this.supervisorId,
@@ -60,7 +65,7 @@ class CreateProcedureParameters extends Equatable {
 
   Map<String, dynamic> toJson() => {
     'hospitalId': hospitalId,
-    'procedureTypeId': procedureTypeId,
+    'procedureTypeIds': procedureTypeIds,
     'patientName': patientName,
     'procedureDate': procedureDate,
     if (supervisorId != null && supervisorId!.isNotEmpty)
@@ -75,7 +80,7 @@ class CreateProcedureParameters extends Equatable {
   @override
   List<Object?> get props => [
     hospitalId,
-    procedureTypeId,
+    procedureTypeIds,
     patientName,
     procedureDate,
     supervisorId,

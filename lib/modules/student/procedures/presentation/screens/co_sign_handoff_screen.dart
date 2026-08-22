@@ -49,6 +49,16 @@ class _CoSignHandoffScreenState extends State<CoSignHandoffScreen> {
 
   String get _code => widget.result.coSignCode ?? '';
 
+  /// The response for a multi-type session doesn't carry procedure-type
+  /// names (only ids) per row, so fall back to a count rather than showing
+  /// nothing or a misleading single name.
+  String get _procedureSubtitle {
+    final sessionSize = widget.result.procedure.sessionSize ?? 1;
+    if (sessionSize > 1) return 'حالة واحدة — $sessionSize أنواع إجراءات';
+    return widget.result.procedure.procedureTypeName ??
+        LocaleKeys.co_sign_default_procedure.tr();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -198,8 +208,7 @@ class _CoSignHandoffScreenState extends State<CoSignHandoffScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            widget.result.procedure.procedureTypeName ??
-                LocaleKeys.co_sign_default_procedure.tr(),
+            _procedureSubtitle,
             style: const TextStyle(color: Color(0xFFCFFAFE), fontSize: 13),
           ),
           const SizedBox(height: 10),
