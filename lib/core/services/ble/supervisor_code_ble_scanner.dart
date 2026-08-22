@@ -87,8 +87,16 @@ class SupervisorCodeBleScannerImpl implements SupervisorCodeBleScanner {
     // 1. Clean up any existing scan subscription and controller safely first
     _cleanupScanResources();
 
-    final controller = StreamController<StudentCodeDetection>.broadcast(
-      onCancel: () => stopScanning(),
+    late final StreamController<StudentCodeDetection> controller;
+    controller = StreamController<StudentCodeDetection>.broadcast(
+      onCancel: () {
+        // Guard against a stale controller — one already superseded by a
+        // newer startScanning() call — re-entering stopScanning() and
+        // tearing down a session it no longer owns.
+        if (identical(_scanController, controller)) {
+          unawaited(stopScanning());
+        }
+      },
     );
     _scanController = controller;
 
@@ -150,6 +158,14 @@ class SupervisorCodeBleScannerImpl implements SupervisorCodeBleScanner {
 
     if (!identical(_scanController, controller)) {
       _log('startScanning: superseded before subscribing, aborting');
+      try {
+        controller.addError(
+          StateError('Scan attempt superseded before it could start.'),
+        );
+      } catch (_) {
+        // Already closed by whatever superseded this attempt — nothing to
+        // notify.
+      }
       return;
     }
 

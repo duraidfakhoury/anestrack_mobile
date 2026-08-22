@@ -43,6 +43,14 @@ class _BleDebugSupervisorScreenState extends State<BleDebugSupervisorScreen> {
 
   bool _scanningCodes = false;
 
+  /// True while a start/stop request is settling. The scanner's startup
+  /// checks (permissions, adapter status) can take a few seconds; blocking
+  /// the button during that window stops a fast re-tap from racing the
+  /// in-flight start and silently killing it before it ever subscribes.
+  bool _busy = false;
+
+  static const _scanSetupGuard = Duration(seconds: 4);
+
   @override
   void initState() {
     super.initState();
@@ -60,30 +68,55 @@ class _BleDebugSupervisorScreenState extends State<BleDebugSupervisorScreen> {
     super.dispose();
   }
 
+  void _onScanError(Object error) {
+    if (!mounted) return;
+    setState(() {
+      _scanningCodes = false;
+      _busy = false;
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('BLE scan error: $error')));
+  }
+
   Future<void> _toggleCodeScanning() async {
+    if (_busy) return;
+
     if (_scanningCodes) {
+      setState(() => _busy = true);
       await _codeScanSubscription?.cancel();
       _codeScanSubscription = null;
       await _codeScanner.stopScanning();
       if (!mounted) return;
-      setState(() => _scanningCodes = false);
+      setState(() {
+        _scanningCodes = false;
+        _busy = false;
+      });
       return;
     }
 
     setState(() {
       _scanningCodes = true;
+      _busy = true;
       _codeCandidates.clear();
     });
-    _codeScanSubscription = _codeScanner.startScanning().listen((detection) {
-      if (!mounted) return;
-      setState(() {
-        _codeCandidates[detection.coSignCode] = _CodeCandidate(
-          coSignCode: detection.coSignCode,
-          rssi: detection.rssi,
-          lastSeen: DateTime.now(),
-        );
-      });
-    });
+    _codeScanSubscription = _codeScanner.startScanning().listen(
+      (detection) {
+        if (!mounted) return;
+        setState(() {
+          _codeCandidates[detection.coSignCode] = _CodeCandidate(
+            coSignCode: detection.coSignCode,
+            rssi: detection.rssi,
+            lastSeen: DateTime.now(),
+          );
+        });
+      },
+      onError: _onScanError,
+    );
+
+    await Future.delayed(_scanSetupGuard);
+    if (!mounted || !_scanningCodes) return;
+    setState(() => _busy = false);
   }
 
   @override
@@ -117,7 +150,7 @@ class _BleDebugSupervisorScreenState extends State<BleDebugSupervisorScreen> {
                 _buildInfoCard(),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
-                  onPressed: _toggleCodeScanning,
+                  onPressed: _busy ? null : _toggleCodeScanning,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _scanningCodes
                         ? const Color(0xFFC1483F)
