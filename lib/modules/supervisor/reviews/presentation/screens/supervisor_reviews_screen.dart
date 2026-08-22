@@ -159,6 +159,7 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
                 _refresh();
               } else if (state.isError) {
                 _toast('خطأ: ${state.errorMessage}', const Color(0xFFC1483F));
+                _refresh();
               }
             },
           ),
@@ -170,6 +171,7 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
                 _refresh();
               } else if (state.isError) {
                 _toast('خطأ: ${state.errorMessage}', const Color(0xFFC1483F));
+                _refresh();
               }
             },
           ),
@@ -478,41 +480,67 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
         }
         final items = state.data ?? [];
         if (items.isEmpty) return const _EmptyView();
+        final groups = _groupBySession(items);
         return RefreshIndicator(
           onRefresh: () async => _refresh(),
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            itemCount: items.length,
-            itemBuilder: (context, idx) => _PendingCard(
-              procedure: items[idx],
-              onConfirm: () => _confirm(items[idx], 'Confirm'),
-              onReject: () => _confirm(items[idx], 'Reject'),
-              onCoSign: () => _coSignById(items[idx]),
-            ),
+            itemCount: groups.length,
+            itemBuilder: (context, idx) {
+              final group = groups[idx];
+              final primary = group.first;
+              return _PendingCard(
+                group: group,
+                onConfirm: () => _confirm(primary, 'Confirm'),
+                onReject: () => _confirm(primary, 'Reject'),
+                onCoSign: () => _coSignById(primary),
+              );
+            },
           ),
         );
       },
     );
   }
+
+  /// Multi-type procedures (`integration-mobile.md` §5) arrive as one row per
+  /// type sharing a `sessionId` — a single bedside case must render (and be
+  /// decided) as one card, not N duplicates. Deciding any one row without an
+  /// explicit `ids` subset resolves the whole session server-side, so a
+  /// per-row card would be actively misleading. Rows without a `sessionId`
+  /// (or sharing one accidentally) fall back to their own single-item group.
+  List<List<Procedure>> _groupBySession(List<Procedure> items) {
+    final order = <String>[];
+    final bySession = <String, List<Procedure>>{};
+    for (final item in items) {
+      final key = item.sessionId ?? item.id;
+      if (!bySession.containsKey(key)) order.add(key);
+      bySession.putIfAbsent(key, () => []).add(item);
+    }
+    return [for (final key in order) bySession[key]!];
+  }
 }
 
 class _PendingCard extends StatelessWidget {
-  final Procedure procedure;
+  final List<Procedure> group;
   final VoidCallback onConfirm;
   final VoidCallback onReject;
   final VoidCallback onCoSign;
 
   const _PendingCard({
-    required this.procedure,
+    required this.group,
     required this.onConfirm,
     required this.onReject,
     required this.onCoSign,
   });
 
-  String get _date =>
-      (procedure.procedureDate ?? procedure.createdAt ?? '').split('T').first;
+  Procedure get _primary => group.first;
 
-  bool get _isConfirmation => procedure.isPendingConfirmation;
+  bool get _isMultiType => group.length > 1;
+
+  String get _date =>
+      (_primary.procedureDate ?? _primary.createdAt ?? '').split('T').first;
+
+  bool get _isConfirmation => _primary.isPendingConfirmation;
 
   @override
   Widget build(BuildContext context) {
@@ -535,20 +563,23 @@ class _PendingCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _IconLabel(
-                      icon: LucideIcons.stethoscope,
-                      text: procedure.procedureTypeName ?? 'إجراء',
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
+                    if (_isMultiType)
+                      _buildTypeChips()
+                    else
+                      _IconLabel(
+                        icon: LucideIcons.stethoscope,
+                        text: _primary.procedureTypeName ?? 'إجراء',
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F2937),
+                        ),
+                        iconColor: const Color(0xFF6A5ACD),
                       ),
-                      iconColor: const Color(0xFF6A5ACD),
-                    ),
                     const SizedBox(height: 6),
                     _IconLabel(
                       icon: LucideIcons.user,
-                      text: procedure.studentName ?? 'طالب',
+                      text: _primary.studentName ?? 'طالب',
                       textStyle: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF4B5563),
@@ -557,7 +588,7 @@ class _PendingCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     _IconLabel(
                       icon: LucideIcons.heartPulse,
-                      text: procedure.patientName,
+                      text: _primary.patientName,
                       textStyle: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF4B5563),
@@ -576,10 +607,10 @@ class _PendingCard extends StatelessWidget {
             children: [
               _MetaChip(
                 icon: LucideIcons.building2,
-                text: procedure.hospitalName ?? '—',
+                text: _primary.hospitalName ?? '—',
               ),
               _MetaChip(icon: LucideIcons.calendar, text: _date),
-              if (procedure.isEmergency)
+              if (_primary.isEmergency)
                 const _MetaChip(
                   icon: LucideIcons.triangleAlert,
                   text: 'طارئ',
@@ -587,6 +618,13 @@ class _PendingCard extends StatelessWidget {
                 ),
             ],
           ),
+          if (_isMultiType) ...[
+            const SizedBox(height: 8),
+            Text(
+              'قرار واحد يشمل كل الأنواع أعلاه (${group.length})',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+            ),
+          ],
           const SizedBox(height: 14),
           if (_isConfirmation)
             _buildConfirmActions()
@@ -594,6 +632,50 @@ class _PendingCard extends StatelessWidget {
             _buildCoSignAwaiting(),
         ],
       ),
+    );
+  }
+
+  /// One case, several types — shown as a labeled chip row instead of the
+  /// single bold name, since a single decision (confirm/reject/co-sign)
+  /// resolves every type in the session at once.
+  Widget _buildTypeChips() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              LucideIcons.stethoscope,
+              size: 14,
+              color: Color(0xFF6A5ACD),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'حالة بعدة أنواع',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: group
+              .map((p) => p.procedureTypeName ?? 'إجراء')
+              .map(
+                (name) => _MetaChip(
+                  icon: LucideIcons.stethoscope,
+                  text: name,
+                  color: const Color(0xFF6A5ACD),
+                ),
+              )
+              .toList(),
+        ),
+      ],
     );
   }
 
