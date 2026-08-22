@@ -218,8 +218,17 @@ class SupervisorCodeBleScannerImpl implements SupervisorCodeBleScanner {
   /// dynamic service UUID alongside the static [kAnesTrackServiceUuid]
   /// marker (iOS). Both branches actively verify the AnesTrack marker rather
   /// than just checking byte length, to avoid matching any nearby unrelated
-  /// 16/18-byte manufacturer payload or 128-bit service UUID as if it were a
-  /// valid code.
+  /// device's manufacturer payload or service UUID as if it were a valid
+  /// code — confirmed necessary in practice: an unrelated nearby device
+  /// whose manufacturer data happened to be exactly 16 bytes was previously
+  /// misdecoded as a "valid" code by a since-removed length-only fallback
+  /// path that assumed some chipsets strip the company-ID prefix. That
+  /// fallback had no way to verify the AnesTrack marker at all, so it's
+  /// gone — `flutter_reactive_ble`'s Android implementation always reports
+  /// the 2-byte company-ID prefix intact (see `ManufacturerDataConverter.kt`
+  /// upstream), so the length+2 branch below is sufficient on Android; iOS
+  /// relies solely on the service-UUID branch since its peripheral mode
+  /// can't send manufacturer data at all.
   String? _tryDecodeCode(DiscoveredDevice device) {
     final mData = device.manufacturerData;
     if (mData.length == kPayloadLength + 2) {
@@ -230,12 +239,6 @@ class SupervisorCodeBleScannerImpl implements SupervisorCodeBleScanner {
       if (manufacturerId == kAnesTrackManufacturerId) {
         return coSignCodeFromBytes(mData.sublist(2));
       }
-    } else if (mData.length == kPayloadLength) {
-      // Some OS/chipset combinations report manufacturer data with the
-      // company-id prefix already stripped — can't verify the ID in that
-      // case, so this path leans more on the code being well-formed (16
-      // exact bytes) to avoid false positives.
-      return coSignCodeFromBytes(mData);
     }
 
     final serviceUuids = device.serviceUuids.map(
