@@ -23,6 +23,47 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
     return data;
   }
 
+  /// `createProcedure`/`coSignProcedure`/`confirmProcedure` all return a flat
+  /// procedure object for a single-type request, but a session envelope —
+  /// `{sessionId, sessionSize, procedures: [...]}`, no top-level `status`/`id`
+  /// — once more than one procedure type is involved (see
+  /// `integration-mobile.md` §5). Parsing the envelope itself as a
+  /// `ProcedureModel` silently defaults every field (`status` becomes
+  /// `Pending`, `id` becomes `''`), which is exactly backwards from what
+  /// happened. Pick the row matching [preferredId] (the row the caller acted
+  /// on) so status/decision reads correctly; any row is representative since
+  /// deciding one without an explicit `ids` subset decides the whole session.
+  ProcedureModel _extractProcedure(
+    Map<String, dynamic> body, {
+    String? preferredId,
+  }) {
+    final rows = body['procedures'];
+    if (rows is List && rows.isNotEmpty) {
+      final maps = rows
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      Map<String, dynamic>? match;
+      if (preferredId != null) {
+        for (final m in maps) {
+          if ((m['objectId'] ?? m['id']) == preferredId) {
+            match = m;
+            break;
+          }
+        }
+      }
+      final row = match ?? maps.first;
+      return ProcedureModel.fromJson({
+        ...row,
+        // Some backend builds additionally surface the decision's outcome at
+        // the envelope's top level rather than only per-row — prefer it when
+        // present so a future shape change can't reintroduce the "shows
+        // Reject for a Confirm" bug this was written to fix.
+        if (body['status'] != null) 'status': body['status'],
+      });
+    }
+    return ProcedureModel.fromJson(body);
+  }
+
   List<ProcedureModel> _toProcedureList(dynamic body) {
     final unwrapped = _unwrap(body);
     if (unwrapped is List) {
@@ -68,12 +109,33 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
       final body = _unwrap(response.data);
       if (body is Map) {
         final map = Map<String, dynamic>.from(body);
+        final rows = map['procedures'];
+
+        // Multi-type session envelope: `{sessionId, sessionSize, coSignCode,
+        // procedures: [...]}`. Each row is sparse (just objectId/procedureType
+        // pointer/sessionId) — the shared fields (patientName, procedureDate)
+        // live on the request, not the response, so backfill them here.
+        final ProcedureModel procedure;
+        if (rows is List && rows.isNotEmpty) {
+          final first = Map<String, dynamic>.from(rows.first as Map);
+          procedure = ProcedureModel.fromJson({
+            ...first,
+            'patientName': parameters.patientName,
+            'procedureDate': parameters.procedureDate,
+            'sessionId': first['sessionId'] ?? map['sessionId'],
+            'sessionSize': first['sessionSize'] ?? map['sessionSize'],
+          });
+        } else {
+          procedure = ProcedureModel.fromJson(map);
+        }
+
         final result = CreateProcedureResult(
-          procedure: ProcedureModel.fromJson(map),
+          procedure: procedure,
           coSignCode: map['coSignCode'] as String?,
         );
         _logger.i(
-          "Procedure created (liveCoSign: ${result.requiresLiveCoSign})",
+          "Procedure created (liveCoSign: ${result.requiresLiveCoSign}, "
+          "sessionSize: ${procedure.sessionSize ?? 1})",
         );
         return result;
       }
@@ -94,7 +156,10 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
       );
       final body = _unwrap(response.data);
       if (body is Map) {
-        return ProcedureModel.fromJson(Map<String, dynamic>.from(body));
+        return _extractProcedure(
+          Map<String, dynamic>.from(body),
+          preferredId: parameters.id,
+        );
       }
       throw Exception("Unexpected coSignProcedure response: ${response.data}");
     } catch (e) {
@@ -134,7 +199,10 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
       );
       final body = _unwrap(response.data);
       if (body is Map) {
-        return ProcedureModel.fromJson(Map<String, dynamic>.from(body));
+        return _extractProcedure(
+          Map<String, dynamic>.from(body),
+          preferredId: parameters.id,
+        );
       }
       throw Exception("Unexpected confirmProcedure response: ${response.data}");
     } catch (e) {
