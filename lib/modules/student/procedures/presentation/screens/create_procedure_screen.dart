@@ -48,6 +48,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
   final TextEditingController _patientNameController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _timeController = TextEditingController();
   final TextEditingController _procedureTypeSearchController =
       TextEditingController();
   String _procedureTypeSearchQuery = '';
@@ -56,6 +57,13 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
   bool _requestLiveCoSign = false;
   bool _isEmergency = false;
   DateTime? _chosenDate;
+  TimeOfDay? _chosenTime;
+
+  /// Whether the student touched the date/time pickers. Until they do, we
+  /// submit the actual moment of submission (not whatever `DateTime.now()`
+  /// was when the screen opened) — only an explicit edit here means a
+  /// backdated procedure.
+  bool _dateTimeManuallyChanged = false;
 
   String? _photoBase64; // no data-URI prefix
   String? _photoPath; // for preview
@@ -70,7 +78,9 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     _supervisorsBloc = sl<SupervisorsBloc>()..add(FetchSupervisorsEvent());
 
     _chosenDate = DateTime.now();
+    _chosenTime = TimeOfDay.fromDateTime(_chosenDate!);
     _dateController.text = DateFormat('yyyy-MM-dd').format(_chosenDate!);
+    _timeController.text = _formatTime(_chosenTime!);
   }
 
   @override
@@ -78,10 +88,14 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     _patientNameController.dispose();
     _notesController.dispose();
     _dateController.dispose();
+    _timeController.dispose();
     _procedureTypeSearchController.dispose();
     _createProcedureBloc.close();
     super.dispose();
   }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -104,6 +118,31 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       setState(() {
         _chosenDate = picked;
         _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _dateTimeManuallyChanged = true;
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _chosenTime ?? TimeOfDay.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: _teal,
+            onPrimary: Colors.white,
+            onSurface: Color(0xFF1F2937),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _chosenTime = picked;
+        _timeController.text = _formatTime(picked);
+        _dateTimeManuallyChanged = true;
       });
     }
   }
@@ -148,11 +187,21 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
   void _submitProcedure() {
     Navigator.pop(context);
 
+    final DateTime procedureDateTime = _dateTimeManuallyChanged
+        ? DateTime(
+            _chosenDate!.year,
+            _chosenDate!.month,
+            _chosenDate!.day,
+            _chosenTime!.hour,
+            _chosenTime!.minute,
+          )
+        : DateTime.now();
+
     final parameters = CreateProcedureParameters(
       hospitalId: _selectedHospitalId!,
       procedureTypeIds: _selectedProcedureTypeIds.toList(),
       patientName: _patientNameController.text.trim(),
-      procedureDate: _dateController.text,
+      procedureDate: procedureDateTime.toIso8601String(),
       supervisorId: _selectedSupervisorId,
       notes: _notesController.text.trim().isNotEmpty
           ? _notesController.text.trim()
@@ -284,18 +333,52 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        _buildLabel("تاريخ الإجراء"),
-                        TextFormField(
-                          controller: _dateController,
-                          readOnly: true,
-                          onTap: () => _selectDate(context),
-                          decoration: _decoration(
-                            prefixIcon: LucideIcons.calendar,
-                            hint: "اختر تاريخ الإجراء",
+                        _buildLabel("تاريخ ووقت الإجراء"),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: TextFormField(
+                                controller: _dateController,
+                                readOnly: true,
+                                onTap: () => _selectDate(context),
+                                decoration: _decoration(
+                                  prefixIcon: LucideIcons.calendar,
+                                  hint: "التاريخ",
+                                ),
+                                validator: (v) => v == null || v.isEmpty
+                                    ? 'يرجى اختيار التاريخ'
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: _timeController,
+                                readOnly: true,
+                                onTap: () => _selectTime(context),
+                                decoration: _decoration(
+                                  prefixIcon: LucideIcons.clock,
+                                  hint: "الوقت",
+                                ),
+                                validator: (v) => v == null || v.isEmpty
+                                    ? 'يرجى اختيار الوقت'
+                                    : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _dateTimeManuallyChanged
+                              ? "تم تعديل الوقت — سيُسجَّل الإجراء بتاريخ ووقت مختلفين عن الآن"
+                              : "افتراضياً: الوقت الحالي — يمكنك تعديله لتسجيل إجراء سابق",
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF9CA3AF),
                           ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'يرجى اختيار التاريخ'
-                              : null,
                         ),
                         const SizedBox(height: 20),
 
