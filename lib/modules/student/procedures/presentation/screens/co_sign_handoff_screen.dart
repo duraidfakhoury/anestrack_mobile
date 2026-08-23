@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
-import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_state.dart';
@@ -14,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -25,7 +28,7 @@ const _cyan = Color(0xFF0891B2);
 /// over BLE (see [CoSignBleBloc]) for the supervisor's device to pick up.
 /// The actual co-sign call happens on the *supervisor's* device once they
 /// confirm, not here — BLE itself has no acknowledgement channel, so this
-/// screen polls `getProcedure` (see [_checkCoSignStatus]) to learn whether
+/// screen polls `listProcedures` (see [_checkCoSignStatus]) to learn whether
 /// the co-sign actually went through, however the supervisor received the
 /// code, and closes itself once it has.
 ///
@@ -50,12 +53,13 @@ class _CoSignHandoffScreenState extends State<CoSignHandoffScreen> {
   late DateTime _expiresAt;
   Duration _remaining = Duration.zero;
 
-  /// Polls `getProcedure` since the actual co-sign call happens on the
+  /// Polls `listProcedures` since the actual co-sign call happens on the
   /// *supervisor's* device (see class doc comment) — there's no push/BLE
   /// acknowledgement this screen can rely on, so this is how it learns the
   /// supervisor actually signed and closes itself.
   Timer? _pollTimer;
   bool _signedOff = false;
+  final Logger _logger = Logger();
 
   String get _code => widget.result.coSignCode ?? '';
 
@@ -112,13 +116,45 @@ class _CoSignHandoffScreenState extends State<CoSignHandoffScreen> {
     super.dispose();
   }
 
+  /// `getProcedure` (fetch-by-id) 404s for a student polling their own
+  /// just-created procedure — Parse's find-by-id masks an ACL read denial as
+  /// "not found" rather than "forbidden", and this row apparently isn't
+  /// student-readable that way. `listProcedures` is what the student's own
+  /// procedures screen already uses successfully, so poll that instead and
+  /// pick out this row by id.
   Future<void> _checkCoSignStatus() async {
     if (_signedOff || _expired) return;
-    final result = await sl<GetProcedureUseCase>()(widget.result.procedure.id);
+    final id = widget.result.procedure.id;
+    final result = await sl<ListProceduresUseCase>()(
+      const ListProceduresParameters(limit: 50),
+    );
     if (!mounted || _signedOff) return;
-    result.fold((_) {}, (procedure) {
-      if (procedure.coSignStatus == 'CoSigned') _handleSigned();
-    });
+    result.fold(
+      (failure) =>
+          _logger.w('[CoSignPoll] listProcedures failed: ${failure.message}'),
+      (procedures) {
+        final list = procedures as List<Procedure>;
+        Procedure? match;
+        for (final p in list) {
+          if (p.id == id) {
+            match = p;
+            break;
+          }
+        }
+        if (match == null) {
+          _logger.w(
+            '[CoSignPoll] procedure $id not found among ${list.length} '
+            'listProcedures rows',
+          );
+          return;
+        }
+        _logger.i(
+          '[CoSignPoll] $id -> status=${match.status} '
+          'coSignStatus=${match.coSignStatus}',
+        );
+        if (match.coSignStatus == 'CoSigned') _handleSigned();
+      },
+    );
   }
 
   void _handleSigned() {
