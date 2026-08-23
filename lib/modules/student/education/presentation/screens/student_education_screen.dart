@@ -394,27 +394,29 @@ class _LectureCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 LectureMainGoalsList(goals: lecture.mainGoals),
               ],
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.blue600,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  onPressed: () => showLectureAiSummarySheet(
-                    context,
-                    lectureId: lecture.id,
-                    lectureTitle: lecture.title,
-                  ),
-                  icon: const Icon(LucideIcons.fileText, size: 14),
-                  label: Text(
-                    LocaleKeys.education_ai_summary.tr(),
-                    style: const TextStyle(fontSize: 12),
+              if (kAiSummaryFeatureEnabled) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.blue600,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () => showLectureAiSummarySheet(
+                      context,
+                      lectureId: lecture.id,
+                      lectureTitle: lecture.title,
+                    ),
+                    icon: const Icon(LucideIcons.fileText, size: 14),
+                    label: Text(
+                      LocaleKeys.education_ai_summary.tr(),
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ),
-              ),
+              ],
               if (lecture.withTest) ...[
                 const SizedBox(height: 8),
                 SizedBox(

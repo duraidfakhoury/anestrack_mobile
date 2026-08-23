@@ -7,6 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+/// Temporary kill switch for the AI summary feature — the backend endpoint
+/// is broken; flip this back to `true` once it's fixed. Gates the button in
+/// both `student_education_screen.dart` and `lecture_detail_screen.dart`.
+const bool kAiSummaryFeatureEnabled = false;
+
 Future<void> showLectureAiSummarySheet(
   BuildContext context, {
   required String lectureId,

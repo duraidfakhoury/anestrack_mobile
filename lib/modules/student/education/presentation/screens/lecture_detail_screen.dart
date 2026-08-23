@@ -238,23 +238,25 @@ class _LectureDetailBody extends StatelessWidget {
                   lecture: lecture,
                   onOpen: () => _openContent(context),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.blue600,
-                      foregroundColor: AppColors.white,
+                if (kAiSummaryFeatureEnabled) ...[
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.blue600,
+                        foregroundColor: AppColors.white,
+                      ),
+                      onPressed: () => showLectureAiSummarySheet(
+                        context,
+                        lectureId: lecture.id,
+                        lectureTitle: lecture.title,
+                      ),
+                      icon: const Icon(LucideIcons.fileText, size: 16),
+                      label: Text(LocaleKeys.education_ai_summary.tr()),
                     ),
-                    onPressed: () => showLectureAiSummarySheet(
-                      context,
-                      lectureId: lecture.id,
-                      lectureTitle: lecture.title,
-                    ),
-                    icon: const Icon(LucideIcons.fileText, size: 16),
-                    label: Text(LocaleKeys.education_ai_summary.tr()),
                   ),
-                ),
+                ],
                 const SizedBox(height: 10),
                 _QuizButton(lectureId: lecture.id),
                 const SizedBox(height: 10),
