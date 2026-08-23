@@ -112,7 +112,6 @@ abstract class  LocaleKeys {
   static const education_empty_lectures = 'education.empty_lectures';
   static const education_retry = 'education.retry';
   static const education_ai_summary = 'education.ai_summary';
-  static const education_ask_assistant = 'education.ask_assistant';
   static const education_start_quiz = 'education.start_quiz';
   static const education_no_quiz_available = 'education.no_quiz_available';
   static const education_submit_answers = 'education.submit_answers';
@@ -121,9 +120,6 @@ abstract class  LocaleKeys {
   static const education_back_to_lecture = 'education.back_to_lecture';
   static const education_ai_summary_title = 'education.ai_summary_title';
   static const education_regenerate_summary = 'education.regenerate_summary';
-  static const education_assistant_title = 'education.assistant_title';
-  static const education_assistant_input_hint = 'education.assistant_input_hint';
-  static const education_assistant_not_available = 'education.assistant_not_available';
   static const education_lecture_detail_title = 'education.lecture_detail_title';
   static const education_main_goals_title = 'education.main_goals_title';
   static const education_watch_video = 'education.watch_video';

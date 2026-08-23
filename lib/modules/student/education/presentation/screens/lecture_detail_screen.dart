@@ -6,7 +6,6 @@ import 'package:anestrack_mobile/modules/student/education/domain/entities/lectu
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_assessment_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_attendance_bloc.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/blocs/lecture_detail_bloc.dart';
-import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_assistant_route.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/routes/lecture_quiz_route.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/widgets/lecture_ai_summary_sheet.dart';
 import 'package:anestrack_mobile/modules/student/education/presentation/widgets/lecture_rating_sheet.dart';
@@ -240,39 +239,21 @@ class _LectureDetailBody extends StatelessWidget {
                   onOpen: () => _openContent(context),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.blue600,
-                          foregroundColor: AppColors.white,
-                        ),
-                        onPressed: () => showLectureAiSummarySheet(
-                          context,
-                          lectureId: lecture.id,
-                          lectureTitle: lecture.title,
-                        ),
-                        icon: const Icon(LucideIcons.fileText, size: 16),
-                        label: Text(LocaleKeys.education_ai_summary.tr()),
-                      ),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.blue600,
+                      foregroundColor: AppColors.white,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.purple600,
-                          foregroundColor: AppColors.white,
-                        ),
-                        onPressed: () => context.push(
-                          '${LectureAssistantRoute.name}/${lecture.id}',
-                          extra: lecture,
-                        ),
-                        icon: const Icon(LucideIcons.sparkles, size: 16),
-                        label: Text(LocaleKeys.education_ask_assistant.tr()),
-                      ),
+                    onPressed: () => showLectureAiSummarySheet(
+                      context,
+                      lectureId: lecture.id,
+                      lectureTitle: lecture.title,
                     ),
-                  ],
+                    icon: const Icon(LucideIcons.fileText, size: 16),
+                    label: Text(LocaleKeys.education_ai_summary.tr()),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 _QuizButton(lectureId: lecture.id),
