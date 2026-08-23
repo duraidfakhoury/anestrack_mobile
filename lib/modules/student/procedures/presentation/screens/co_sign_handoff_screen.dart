@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_state.dart';
@@ -23,8 +24,10 @@ const _cyan = Color(0xFF0891B2);
 /// request, the student's phone broadcasts the procedure's co-sign code
 /// over BLE (see [CoSignBleBloc]) for the supervisor's device to pick up.
 /// The actual co-sign call happens on the *supervisor's* device once they
-/// confirm, not here — there is no acknowledgement channel, so this screen
-/// never learns definitively whether the co-sign succeeded via BLE.
+/// confirm, not here — BLE itself has no acknowledgement channel, so this
+/// screen polls `getProcedure` (see [_checkCoSignStatus]) to learn whether
+/// the co-sign actually went through, however the supervisor received the
+/// code, and closes itself once it has.
 ///
 /// If the code can't be advertised, or the window elapses (or BLE isn't
 /// available at all), this screen falls back to the QR code / raw code
@@ -47,6 +50,13 @@ class _CoSignHandoffScreenState extends State<CoSignHandoffScreen> {
   late DateTime _expiresAt;
   Duration _remaining = Duration.zero;
 
+  /// Polls `getProcedure` since the actual co-sign call happens on the
+  /// *supervisor's* device (see class doc comment) — there's no push/BLE
+  /// acknowledgement this screen can rely on, so this is how it learns the
+  /// supervisor actually signed and closes itself.
+  Timer? _pollTimer;
+  bool _signedOff = false;
+
   String get _code => widget.result.coSignCode ?? '';
 
   /// The response for a multi-type session doesn't carry procedure-type
@@ -65,6 +75,10 @@ class _CoSignHandoffScreenState extends State<CoSignHandoffScreen> {
     _expiresAt = _resolveExpiry();
     _tick();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _checkCoSignStatus(),
+    );
 
     _bleBloc = sl<CoSignBleBloc>()
       ..add(StartCoSignBleEvent(widget.result.procedure.id, _code));
@@ -92,9 +106,34 @@ class _CoSignHandoffScreenState extends State<CoSignHandoffScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _pollTimer?.cancel();
     _bleStateSubscription?.cancel();
     _bleBloc.close();
     super.dispose();
+  }
+
+  Future<void> _checkCoSignStatus() async {
+    if (_signedOff || _expired) return;
+    final result = await sl<GetProcedureUseCase>()(widget.result.procedure.id);
+    if (!mounted || _signedOff) return;
+    result.fold((_) {}, (procedure) {
+      if (procedure.coSignStatus == 'CoSigned') _handleSigned();
+    });
+  }
+
+  void _handleSigned() {
+    if (_signedOff) return;
+    _signedOff = true;
+    _timer?.cancel();
+    _pollTimer?.cancel();
+    _bleBloc.add(CancelCoSignBleEvent());
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(LocaleKeys.co_sign_signed.tr())),
+    );
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) _finish();
+    });
   }
 
   bool get _expired => _remaining == Duration.zero;

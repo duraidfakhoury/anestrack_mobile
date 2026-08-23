@@ -29,6 +29,10 @@ abstract class ProcedureRepository {
   /// Supervisor — preview a scanned co-sign code before tapping.
   Future<Either<Failure, CoSignContext>> getCoSignContext(String coSignCode);
 
+  /// Student — poll a single procedure's current status (e.g. to detect a
+  /// live co-sign completed on the supervisor's device).
+  Future<Either<Failure, Procedure>> getProcedure(String id);
+
   /// Supervisor — confirm or reject an async procedure (Flow 2/3).
   Future<Either<Failure, Procedure>> confirmProcedure(
     ConfirmProcedureParameters parameters,

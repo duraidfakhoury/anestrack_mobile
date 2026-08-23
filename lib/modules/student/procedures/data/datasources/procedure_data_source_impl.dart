@@ -188,6 +188,24 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
   }
 
   @override
+  Future<ProcedureModel> getProcedure(String id) async {
+    try {
+      final response = await NetworkHelper().get(
+        ApisUrls().getProcedure,
+        data: {'id': id},
+      );
+      final body = _unwrap(response.data);
+      if (body is Map) {
+        return _extractProcedure(Map<String, dynamic>.from(body), preferredId: id);
+      }
+      throw Exception("Unexpected getProcedure response: ${response.data}");
+    } catch (e) {
+      _logger.e("Failed to fetch procedure $id: $e");
+      rethrow;
+    }
+  }
+
+  @override
   Future<ProcedureModel> confirmProcedure(
     ConfirmProcedureParameters parameters,
   ) async {

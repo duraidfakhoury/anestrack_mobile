@@ -52,6 +52,13 @@ class ProcedureRepositoryImpl extends ProcedureRepository {
   }
 
   @override
+  Future<Either<Failure, Procedure>> getProcedure(String id) {
+    return AppErrorsHandler().defaultHandleEither(
+      () => dataSource.getProcedure(id),
+    );
+  }
+
+  @override
   Future<Either<Failure, Procedure>> confirmProcedure(
     ConfirmProcedureParameters parameters,
   ) {

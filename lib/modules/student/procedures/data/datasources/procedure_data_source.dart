@@ -20,6 +20,10 @@ abstract class ProcedureDataSource {
 
   Future<CoSignContextModel> getCoSignContext(String coSignCode);
 
+  /// Student — poll a single procedure's current status (e.g. to detect a
+  /// live co-sign completed on the supervisor's device).
+  Future<ProcedureModel> getProcedure(String id);
+
   Future<ProcedureModel> confirmProcedure(
     ConfirmProcedureParameters parameters,
   );

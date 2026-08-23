@@ -30,6 +30,7 @@ import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/sync_pending_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/co_sign_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_co_sign_context_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/confirm_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/create_evaluation_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_pending_for_supervisor_usecase.dart';
@@ -360,6 +361,9 @@ class ServicesLocator {
     );
     sl.registerLazySingleton<GetCoSignContextUseCase>(
       () => GetCoSignContextUseCase(sl<ProcedureRepository>()),
+    );
+    sl.registerLazySingleton<GetProcedureUseCase>(
+      () => GetProcedureUseCase(sl<ProcedureRepository>()),
     );
     sl.registerLazySingleton<ConfirmProcedureUseCase>(
       () => ConfirmProcedureUseCase(sl<ProcedureRepository>()),
