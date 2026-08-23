@@ -76,6 +76,46 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
     return [];
   }
 
+  /// `listPendingForSupervisor` groups rows by session server-side: each
+  /// top-level array entry is a session envelope —
+  /// `{sessionId, sessionSize, pendingAction, procedures: [...]}` — with all
+  /// the actual procedure fields (patientName, student, hospital,
+  /// procedureType, confirmationStatus, ...) nested inside `procedures`, not
+  /// on the envelope itself. Parsing the envelope directly as a
+  /// `ProcedureModel` (like `_toProcedureList` does for the flat
+  /// `listProcedures` shape) silently defaults every field, which is exactly
+  /// backwards from what happened — flatten each envelope's `procedures`
+  /// rows instead.
+  List<ProcedureModel> _toPendingProcedureList(dynamic body) {
+    final unwrapped = _unwrap(body);
+    if (unwrapped is! List) {
+      _logger.w("Unexpected list response format: $body");
+      return [];
+    }
+    final result = <ProcedureModel>[];
+    for (final entry in unwrapped) {
+      if (entry is! Map) continue;
+      final envelope = Map<String, dynamic>.from(entry);
+      final rows = envelope['procedures'];
+      if (rows is List && rows.isNotEmpty) {
+        for (final row in rows) {
+          if (row is! Map) continue;
+          result.add(
+            ProcedureModel.fromJson({
+              ...Map<String, dynamic>.from(row),
+              'sessionId': row['sessionId'] ?? envelope['sessionId'],
+              'sessionSize': row['sessionSize'] ?? envelope['sessionSize'],
+            }),
+          );
+        }
+      } else {
+        // No envelope wrapper — treat the entry itself as a flat row.
+        result.add(ProcedureModel.fromJson(envelope));
+      }
+    }
+    return result;
+  }
+
   @override
   Future<List<ProcedureModel>> listProcedures(
     ListProceduresParameters parameters,
@@ -236,7 +276,7 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
       final response = await NetworkHelper().get(
         ApisUrls().listPendingForSupervisor,
       );
-      final procedures = _toProcedureList(response.data);
+      final procedures = _toPendingProcedureList(response.data);
       _logger.i("Fetched ${procedures.length} pending procedures");
       return procedures;
     } catch (e) {
