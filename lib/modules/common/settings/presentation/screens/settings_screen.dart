@@ -1,7 +1,5 @@
 import 'package:anestrack_mobile/core/constants/app_colors.dart';
-import 'package:anestrack_mobile/core/themes/bloc/theme_bloc.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -18,7 +16,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.watch<ThemeBloc>().state is DarkThemeActionState;
     return Scaffold(
       backgroundColor: AppColors.slate50,
       appBar: AppBar(
@@ -33,18 +30,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _sectionTitle('المظهر'),
-          _card([
-            _SwitchRow(
-              icon: LucideIcons.moon,
-              label: 'الوضع الداكن',
-              value: isDark,
-              onChanged: (v) => context.read<ThemeBloc>().add(
-                v ? SetDarkThemeEvent() : SetLightThemeEvent(),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 20),
           _sectionTitle('الإشعارات'),
           _card([
             _SwitchRow(
