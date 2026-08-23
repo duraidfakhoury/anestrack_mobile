@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:anestrack_mobile/core/services/cache_service.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
+import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
@@ -11,7 +12,13 @@ import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/p
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_state.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/queued_cosigned_procedures_bloc/queued_cosigned_procedures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/queued_cosigned_procedures_bloc/queued_cosigned_procedures_event.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/queued_cosigned_procedures_bloc/queued_cosigned_procedures_state.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/utils/procedure_display.dart';
+import 'package:anestrack_mobile/modules/common/offline_cosign_status/presentation/routes/offline_cosign_status_route.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
 
 class StudentProceduresScreen extends StatefulWidget {
   const StudentProceduresScreen({super.key});
@@ -24,6 +31,7 @@ class StudentProceduresScreen extends StatefulWidget {
 class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
   late ProceduresBloc _proceduresBloc;
   late PendingProceduresBloc _pendingProceduresBloc;
+  late QueuedCosignedProceduresBloc _queuedCosignedProceduresBloc;
   final ScrollController _scrollController = ScrollController();
   String _filterStatus = 'all';
 
@@ -47,6 +55,8 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
     );
     _pendingProceduresBloc = sl<PendingProceduresBloc>()
       ..add(const FetchPendingProceduresEvent());
+    _queuedCosignedProceduresBloc = sl<QueuedCosignedProceduresBloc>()
+      ..add(const FetchQueuedCosignedProceduresEvent());
     _scrollController.addListener(_onScroll);
   }
 
@@ -83,6 +93,7 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
             children: [
               _buildHeader(state.data?.length ?? 0),
               _buildPendingBanner(),
+              _buildCoSignedQueueBanner(),
               _buildFilters(),
               Expanded(child: _buildContent(state)),
             ],
@@ -163,6 +174,60 @@ class _StudentProceduresScreenState extends State<StudentProceduresScreen> {
                 ),
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Visually distinct from `_buildPendingBanner()` on purpose — these
+  /// entries scored a supervisor's co-sign and can reach `Verified`, unlike
+  /// plain offline entries which top out lower. Conflating the two banners
+  /// would blur that distinction (confirmed product decision).
+  Widget _buildCoSignedQueueBanner() {
+    return BlocBuilder<QueuedCosignedProceduresBloc, QueuedCosignedProceduresState>(
+      bloc: _queuedCosignedProceduresBloc,
+      builder: (context, state) {
+        final count = state.data?.length ?? 0;
+        if (count == 0) return const SizedBox.shrink();
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.push(OfflineCoSignStatusRoute.name),
+          child: Container(
+            margin: const EdgeInsets.only(top: 10, right: 20, left: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE6F3F4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFCFE6E8)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  LucideIcons.shieldCheck,
+                  size: 16,
+                  color: Color(0xFF0D9488),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    LocaleKeys.offline_cosign_queue_section_subtitle.tr(
+                      args: [count.toString()],
+                    ),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF0A5A61),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  LucideIcons.chevronLeft,
+                  size: 14,
+                  color: Color(0xFF0D9488),
+                ),
+              ],
+            ),
           ),
         );
       },

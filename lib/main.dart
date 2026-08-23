@@ -5,6 +5,8 @@ import 'package:anestrack_mobile/core/network/network_helper.dart';
 import 'package:anestrack_mobile/core/routes/app_routes.dart';
 import 'package:anestrack_mobile/core/services/cache_service.dart';
 import 'package:anestrack_mobile/core/services/notifications/firebase_messaging_service.dart';
+import 'package:anestrack_mobile/core/services/offline_cosign_sync/offline_attestation_sync_service.dart';
+import 'package:anestrack_mobile/core/services/offline_cosign_sync/offline_cosigned_procedure_sync_service.dart';
 import 'package:anestrack_mobile/core/services/procedure_sync/procedure_sync_service.dart';
 import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -40,6 +42,10 @@ Future<void> initVariables() async {
   // Cheap no-op if the offline queue is empty or the user isn't logged in
   // yet (see SyncPendingProceduresUseCase's hasToken gate).
   await sl<ProcedureSyncService>().start();
+  // Offline co-sign — both directions started unconditionally; each is a
+  // no-op unless the signed-in role actually populated its own queue.
+  await sl<OfflineCosignedProcedureSyncService>().start();
+  await sl<OfflineAttestationSyncService>().start();
 }
 
 void main() async {

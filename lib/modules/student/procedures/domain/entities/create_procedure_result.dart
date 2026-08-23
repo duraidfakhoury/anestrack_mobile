@@ -18,14 +18,36 @@ class CreateProcedureResult extends Equatable {
   /// not a server-confirmed record.
   final bool queuedOffline;
 
+  /// True when the submit attempt just failed with `NoInternetFailure` and
+  /// nothing has been queued yet — the UI must show the "you're offline —
+  /// attach your supervisor's code?" prompt (see
+  /// `integration-mobile-offline-cosign.md` §5) and dispatch either
+  /// `QueuePlainOfflineProcedureEvent` or `QueueCoSignedOfflineProcedureEvent`
+  /// based on the student's choice. [procedure] is a throwaway placeholder
+  /// here — nothing has actually been persisted locally yet.
+  final bool offlineNeedsDecision;
+
+  /// True when [queuedOffline] is true *and* the student scanned a
+  /// supervisor's bedside QR — queued to the co-signed queue
+  /// (`syncOfflineCoSignedProcedures`) rather than the plain offline queue.
+  final bool queuedCoSigned;
+
   const CreateProcedureResult({
     required this.procedure,
     this.coSignCode,
     this.queuedOffline = false,
+    this.offlineNeedsDecision = false,
+    this.queuedCoSigned = false,
   });
 
   bool get requiresLiveCoSign => coSignCode != null;
 
   @override
-  List<Object?> get props => [procedure, coSignCode, queuedOffline];
+  List<Object?> get props => [
+    procedure,
+    coSignCode,
+    queuedOffline,
+    offlineNeedsDecision,
+    queuedCoSigned,
+  ];
 }

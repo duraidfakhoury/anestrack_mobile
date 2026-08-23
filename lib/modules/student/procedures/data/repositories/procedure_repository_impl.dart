@@ -5,11 +5,16 @@ import 'package:anestrack_mobile/modules/student/procedures/data/datasources/pro
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/co_sign_context.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/offline_cosign_sync_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/offline_attestation_submit_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/offline_cosign_status.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/create_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/evaluation_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/sync_offline_cosigned_procedures_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/submit_offline_attestations_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/procedure_repository.dart';
 
 class ProcedureRepositoryImpl extends ProcedureRepository {
@@ -80,6 +85,31 @@ class ProcedureRepositoryImpl extends ProcedureRepository {
   ) {
     return AppErrorsHandler().defaultHandleEither(
       () => dataSource.createEvaluation(parameters),
+    );
+  }
+
+  @override
+  Future<Either<Failure, OfflineCoSignSyncResult>>
+  syncOfflineCoSignedProcedures(
+    SyncOfflineCosignedProceduresParameters parameters,
+  ) {
+    return AppErrorsHandler().defaultHandleEither(
+      () => dataSource.syncOfflineCoSignedProcedures(parameters),
+    );
+  }
+
+  @override
+  Future<Either<Failure, OfflineAttestationSubmitResult>>
+  submitOfflineAttestations(SubmitOfflineAttestationsParameters parameters) {
+    return AppErrorsHandler().defaultHandleEither(
+      () => dataSource.submitOfflineAttestations(parameters),
+    );
+  }
+
+  @override
+  Future<Either<Failure, OfflineCoSignStatus>> getOfflineCoSignStatus() {
+    return AppErrorsHandler().defaultHandleEither(
+      () => dataSource.getOfflineCoSignStatus(),
     );
   }
 }

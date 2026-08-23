@@ -1,6 +1,8 @@
 import 'package:anestrack_mobile/core/services/ble/supervisor_code_ble_scanner.dart';
 import 'package:anestrack_mobile/core/services/ble/student_code_ble_advertiser.dart';
 import 'package:anestrack_mobile/core/services/connectivity/connectivity_service.dart';
+import 'package:anestrack_mobile/core/services/offline_cosign_sync/offline_attestation_sync_service.dart';
+import 'package:anestrack_mobile/core/services/offline_cosign_sync/offline_cosigned_procedure_sync_service.dart';
 import 'package:anestrack_mobile/core/services/procedure_sync/procedure_sync_service.dart';
 import 'package:anestrack_mobile/core/themes/bloc/theme_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -15,19 +17,28 @@ import 'package:anestrack_mobile/modules/student/procedures/data/datasources/pro
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/hospital_procedure_type_data_source.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/pending_procedure_local_data_source.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/pending_procedure_local_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/datasources/queued_cosigned_procedure_local_data_source.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/datasources/queued_cosigned_procedure_local_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/reference_data_local_data_source.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/reference_data_local_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/procedure_repository.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/repositories/procedure_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/repositories/hospital_procedure_type_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/repositories/pending_procedure_repository_impl.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/repositories/queued_cosigned_procedure_repository_impl.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/hospital_procedure_type_repository.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/pending_procedure_repository.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/repositories/queued_cosigned_procedure_repository.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/create_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/enqueue_offline_procedure_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/enqueue_offline_cosigned_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_pending_procedures_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/list_queued_cosigned_procedures_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/sync_pending_procedures_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/sync_offline_cosigned_procedures_usecase.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_offline_cosign_status_usecase.dart';
+import 'package:anestrack_mobile/modules/common/offline_cosign_status/presentation/blocs/offline_cosign_status_bloc/offline_cosign_status_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/co_sign_procedure_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_co_sign_context_usecase.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/usecases/get_procedure_usecase.dart';
@@ -52,6 +63,7 @@ import 'package:anestrack_mobile/modules/student/home/presentation/blocs/student
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/create_procedure_bloc/create_procedure_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/queued_cosigned_procedures_bloc/queued_cosigned_procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/co_sign_ble_bloc/co_sign_ble_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
@@ -62,6 +74,13 @@ import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/c
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/confirm_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/evaluation_action_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/live_co_sign_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/mint_attestation_bloc.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/data/datasources/offline_attestation_local_data_source.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/data/datasources/offline_attestation_local_data_source_impl.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/data/repositories/offline_attestation_repository_impl.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/domain/repositories/offline_attestation_repository.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/domain/usecases/mint_offline_attestation_usecase.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/domain/usecases/submit_offline_attestations_usecase.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/datasources/student_data_source_impl.dart';
 import 'package:anestrack_mobile/modules/supervisor/students/data/repositories/student_repository_impl.dart';
@@ -195,6 +214,12 @@ class ServicesLocator {
     sl.registerLazySingleton<PendingProcedureLocalDataSource>(
       () => PendingProcedureLocalDataSourceImpl(),
     );
+    sl.registerLazySingleton<QueuedCosignedProcedureLocalDataSource>(
+      () => QueuedCosignedProcedureLocalDataSourceImpl(),
+    );
+    sl.registerLazySingleton<OfflineAttestationLocalDataSource>(
+      () => OfflineAttestationLocalDataSourceImpl(),
+    );
     sl.registerLazySingleton<ReferenceDataLocalDataSource>(
       () => ReferenceDataLocalDataSourceImpl(),
     );
@@ -290,6 +315,16 @@ class ServicesLocator {
     sl.registerLazySingleton<PendingProcedureRepository>(
       () => PendingProcedureRepositoryImpl(sl<PendingProcedureLocalDataSource>()),
     );
+    sl.registerLazySingleton<QueuedCosignedProcedureRepository>(
+      () => QueuedCosignedProcedureRepositoryImpl(
+        sl<QueuedCosignedProcedureLocalDataSource>(),
+      ),
+    );
+    sl.registerLazySingleton<OfflineAttestationRepository>(
+      () => OfflineAttestationRepositoryImpl(
+        sl<OfflineAttestationLocalDataSource>(),
+      ),
+    );
     sl.registerLazySingleton<StudentRepository>(
       () => StudentRepositoryImpl(sl<StudentDataSource>()),
     );
@@ -346,8 +381,38 @@ class ServicesLocator {
     sl.registerLazySingleton<EnqueueOfflineProcedureUseCase>(
       () => EnqueueOfflineProcedureUseCase(sl<PendingProcedureRepository>()),
     );
+    sl.registerLazySingleton<EnqueueOfflineCoSignedProcedureUseCase>(
+      () => EnqueueOfflineCoSignedProcedureUseCase(
+        sl<QueuedCosignedProcedureRepository>(),
+      ),
+    );
     sl.registerLazySingleton<ListPendingProceduresUseCase>(
       () => ListPendingProceduresUseCase(sl<PendingProcedureRepository>()),
+    );
+    sl.registerLazySingleton<ListQueuedCosignedProceduresUseCase>(
+      () => ListQueuedCosignedProceduresUseCase(
+        sl<QueuedCosignedProcedureRepository>(),
+      ),
+    );
+    sl.registerLazySingleton<SyncOfflineCoSignedProceduresUseCase>(
+      () => SyncOfflineCoSignedProceduresUseCase(
+        sl<QueuedCosignedProcedureRepository>(),
+        sl<ProcedureRepository>(),
+        sl<ConnectivityService>(),
+      ),
+    );
+    sl.registerLazySingleton<MintOfflineAttestationUseCase>(
+      () => MintOfflineAttestationUseCase(sl<OfflineAttestationRepository>()),
+    );
+    sl.registerLazySingleton<SubmitOfflineAttestationsUseCase>(
+      () => SubmitOfflineAttestationsUseCase(
+        sl<OfflineAttestationRepository>(),
+        sl<ProcedureRepository>(),
+        sl<ConnectivityService>(),
+      ),
+    );
+    sl.registerLazySingleton<GetOfflineCoSignStatusUseCase>(
+      () => GetOfflineCoSignStatusUseCase(sl<ProcedureRepository>()),
     );
     sl.registerLazySingleton<SyncPendingProceduresUseCase>(
       () => SyncPendingProceduresUseCase(
@@ -487,6 +552,7 @@ class ServicesLocator {
       () => CreateProcedureBloc(
         sl<CreateProcedureUseCase>(),
         sl<EnqueueOfflineProcedureUseCase>(),
+        sl<EnqueueOfflineCoSignedProcedureUseCase>(),
       ),
     );
     // Singleton: student_procedures_screen.dart, student_home_screen.dart
@@ -494,6 +560,19 @@ class ServicesLocator {
     // instance, same reasoning as ProceduresBloc above.
     sl.registerLazySingleton<PendingProceduresBloc>(
       () => PendingProceduresBloc(sl<ListPendingProceduresUseCase>()),
+    );
+    // Singleton for the same reason as PendingProceduresBloc above:
+    // student_procedures_screen.dart and OfflineCosignedProcedureSyncService
+    // both need to reach the same queue instance.
+    sl.registerLazySingleton<QueuedCosignedProceduresBloc>(
+      () => QueuedCosignedProceduresBloc(
+        sl<ListQueuedCosignedProceduresUseCase>(),
+      ),
+    );
+    // Singleton so both offline-co-sign sync services can poke a refresh
+    // after a run, same reasoning as the two blocs above.
+    sl.registerLazySingleton<OfflineCoSignStatusBloc>(
+      () => OfflineCoSignStatusBloc(sl<GetOfflineCoSignStatusUseCase>()),
     );
     sl.registerFactory<HospitalsBloc>(
       () => HospitalsBloc(sl<ListHospitalsUseCase>()),
@@ -517,6 +596,9 @@ class ServicesLocator {
     );
     sl.registerFactory<CoSignActionBloc>(
       () => CoSignActionBloc(sl<CoSignProcedureUseCase>()),
+    );
+    sl.registerFactory<MintAttestationBloc>(
+      () => MintAttestationBloc(sl<MintOfflineAttestationUseCase>()),
     );
     sl.registerFactory<ConfirmActionBloc>(
       () => ConfirmActionBloc(sl<ConfirmProcedureUseCase>()),
@@ -641,6 +723,21 @@ class ServicesLocator {
       () => ProcedureSyncServiceImpl(
         sl<ConnectivityService>(),
         sl<SyncPendingProceduresUseCase>(),
+      ),
+    );
+    // Offline co-sign sync — same background-trigger pattern as
+    // ProcedureSyncService above, but for the two independent offline
+    // co-sign queues (student claims / supervisor attestations).
+    sl.registerLazySingleton<OfflineCosignedProcedureSyncService>(
+      () => OfflineCosignedProcedureSyncServiceImpl(
+        sl<ConnectivityService>(),
+        sl<SyncOfflineCoSignedProceduresUseCase>(),
+      ),
+    );
+    sl.registerLazySingleton<OfflineAttestationSyncService>(
+      () => OfflineAttestationSyncServiceImpl(
+        sl<ConnectivityService>(),
+        sl<SubmitOfflineAttestationsUseCase>(),
       ),
     );
   }

@@ -3,11 +3,16 @@ import 'package:anestrack_mobile/core/network/exeptions/failure.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/co_sign_context.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/offline_cosign_sync_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/offline_attestation_submit_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/offline_cosign_status.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/create_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/evaluation_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/sync_offline_cosigned_procedures_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/submit_offline_attestations_parameters.dart';
 
 abstract class ProcedureRepository {
   /// Student — list procedures (with optional filters).
@@ -45,4 +50,17 @@ abstract class ProcedureRepository {
   Future<Either<Failure, bool>> createEvaluation(
     EvaluationParameters parameters,
   );
+
+  /// Student — upload queued bedside events scanned from a supervisor's QR.
+  Future<Either<Failure, OfflineCoSignSyncResult>>
+  syncOfflineCoSignedProcedures(
+    SyncOfflineCosignedProceduresParameters parameters,
+  );
+
+  /// Supervisor — upload locally-minted attestations.
+  Future<Either<Failure, OfflineAttestationSubmitResult>>
+  submitOfflineAttestations(SubmitOfflineAttestationsParameters parameters);
+
+  /// Either role — "did my scan/attestation work".
+  Future<Either<Failure, OfflineCoSignStatus>> getOfflineCoSignStatus();
 }

@@ -10,6 +10,8 @@ import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/l
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/blocs/pending_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/ble_debug_supervisor_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/co_sign_scan_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/witness_procedure_route.dart';
+import 'package:anestrack_mobile/modules/common/offline_cosign_status/presentation/routes/offline_cosign_status_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/widgets/co_sign_code_sheet.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/widgets/evaluation_rating_sheet.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -118,6 +120,16 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
     }
   }
 
+  /// Offline co-sign, bedside half — works with zero connectivity, unlike
+  /// every other button on this screen. See `WitnessProcedureScreen`.
+  void _openWitnessProcedure() {
+    context.push(WitnessProcedureRoute.name);
+  }
+
+  void _openOfflineCoSignStatus() {
+    context.push(OfflineCoSignStatusRoute.name);
+  }
+
   /// A nearby student's co-sign code arrived over BLE (see [LiveCoSignBloc])
   /// — open the same confirmation sheet the QR flow uses, pre-filled, so the
   /// supervisor still has to tap to confirm before the co-sign API is
@@ -192,6 +204,7 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
             _buildLiveCoSignToggle(),
             _buildCoSignByCodeButton(),
             _buildNearMeScanButton(),
+            _buildWitnessProcedureButton(),
             Expanded(child: _buildList()),
           ],
         ),
@@ -459,6 +472,78 @@ class _SupervisorReviewsScreenState extends State<SupervisorReviewsScreen> {
                     ),
                   ],
                 ),
+              ),
+              const Icon(LucideIcons.chevronLeft, color: Color(0xFF9CA3AF)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWitnessProcedureButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: InkWell(
+        onTap: _openWitnessProcedure,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD6D9F5)),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECEAF9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(LucideIcons.wifiOff, color: _indigo),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      LocaleKeys.offline_cosign_witness_entry_title.tr(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      LocaleKeys.offline_cosign_witness_entry_subtitle.tr(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  LucideIcons.listChecks,
+                  color: Color(0xFF9CA3AF),
+                  size: 20,
+                ),
+                tooltip: LocaleKeys.offline_cosign_status_title.tr(),
+                onPressed: _openOfflineCoSignStatus,
               ),
               const Icon(LucideIcons.chevronLeft, color: Color(0xFF9CA3AF)),
             ],

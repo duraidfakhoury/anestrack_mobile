@@ -12,6 +12,7 @@ import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/modules/common/devices/domain/usecases/device_usecases.dart';
 import 'package:anestrack_mobile/modules/common/notifications/domain/usecases/notification_usecases.dart';
 import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs/unread_count_bloc.dart';
+import 'package:anestrack_mobile/modules/common/offline_cosign_status/presentation/routes/offline_cosign_status_route.dart';
 
 /// Android notification channel used to display foreground/heads-up messages.
 /// Its id must match the `default_notification_channel_id` meta-data declared
@@ -179,6 +180,15 @@ class FirebaseMessagingService {
         break;
       case 'Lecture':
         route = isStudent ? '/student-home/education' : '/supervisor/acadamic';
+        break;
+      // Offline co-sign (spec: "the supervisor gets a push when their
+      // attestation is claimed, naming the student" — integration-mobile-
+      // offline-cosign.md §9). The exact `data.type` string isn't specified
+      // in the spec doc; 'AttestationClaimed' is a placeholder matching this
+      // file's existing PascalCase convention — confirm the literal value
+      // with the backend before relying on it in production.
+      case 'AttestationClaimed':
+        route = OfflineCoSignStatusRoute.name;
         break;
       default:
         route = null;

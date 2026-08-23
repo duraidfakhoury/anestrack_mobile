@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:anestrack_mobile/generated/locale_keys.g.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/entities/offline_cosign_qr_payload.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/procedure_type.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/supervisors_bloc/supervisors_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/co_sign_handoff_route.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/offline_cosign_scan_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,7 +25,8 @@ import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/p
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedures_bloc/procedures_event.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/pending_procedures_bloc/pending_procedures_event.dart';
-import 'package:intl/intl.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/queued_cosigned_procedures_bloc/queued_cosigned_procedures_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/queued_cosigned_procedures_bloc/queued_cosigned_procedures_event.dart';
 
 const _teal = Color(0xFF0D9488);
 const _cyan = Color(0xFF0891B2);
@@ -67,6 +72,11 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
 
   String? _photoBase64; // no data-URI prefix
   String? _photoPath; // for preview
+
+  /// The parameters from the submit attempt that just came back offline —
+  /// kept so the offline co-sign prompt can re-dispatch them once the
+  /// student picks "scan" or "skip". Cleared once handled.
+  CreateProcedureParameters? _pendingOfflineParameters;
 
   @override
   void initState() {
@@ -211,6 +221,7 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
       photo: _photoBase64,
     );
 
+    _pendingOfflineParameters = parameters;
     _createProcedureBloc.add(SubmitCreateProcedureEvent(parameters));
   }
 
@@ -247,6 +258,75 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) context.go('/student-home/procedures');
     });
+  }
+
+  // The student scanned a supervisor's bedside QR while offline — queued to
+  // the offline co-sign queue instead of the plain one.
+  void _onQueuedCoSigned() {
+    sl<QueuedCosignedProceduresBloc>().add(
+      const RefreshQueuedCosignedProceduresEvent(),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(LocaleKeys.offline_cosign_offline_queued_success.tr()),
+        backgroundColor: const Color(0xFF2E9E6B),
+      ),
+    );
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) context.go('/student-home/procedures');
+    });
+  }
+
+  // The online submit attempt just failed with no connectivity — nothing
+  // has been queued yet. Ask the student whether to attach a supervisor's
+  // bedside code (offline co-sign) or save without one
+  // (`integration-mobile-offline-cosign.md` §5).
+  Future<void> _showOfflineCoSignPrompt() async {
+    final parameters = _pendingOfflineParameters;
+    if (parameters == null) return;
+
+    if (!parameters.requestLiveCoSign) {
+      // The student never checked "request live co-sign" — they aren't
+      // claiming a supervisor is physically present at the bedside, so
+      // there's nothing to offer a QR scan for. Queue straight to the
+      // plain offline queue, same as before this feature existed.
+      _pendingOfflineParameters = null;
+      _createProcedureBloc.add(QueuePlainOfflineProcedureEvent(parameters));
+      return;
+    }
+
+    final choice = await showModalBottomSheet<_OfflinePromptChoice>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _OfflineCoSignPromptSheet(),
+    );
+    if (!mounted) return;
+
+    switch (choice) {
+      case _OfflinePromptChoice.scan:
+        final payload = await context.push<OfflineCoSignQrPayload>(
+          OfflineCoSignScanRoute.name,
+        );
+        if (!mounted) return;
+        if (payload != null) {
+          _pendingOfflineParameters = null;
+          _createProcedureBloc.add(
+            QueueCoSignedOfflineProcedureEvent(parameters, payload),
+          );
+        } else {
+          // Backed out of scanning — re-offer the choice rather than
+          // silently dropping the entry.
+          await _showOfflineCoSignPrompt();
+        }
+      case _OfflinePromptChoice.skip:
+        _pendingOfflineParameters = null;
+        _createProcedureBloc.add(QueuePlainOfflineProcedureEvent(parameters));
+      case null:
+        // Dismissed — leave the form as-is; the student can tap submit
+        // again whenever they're ready.
+        break;
+    }
   }
 
   @override
@@ -294,10 +374,17 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
               ),
             );
           } else if (state.isSuccess && state.data != null) {
-            if (state.data!.queuedOffline) {
-              _onQueuedOffline();
+            final data = state.data!;
+            if (data.offlineNeedsDecision) {
+              _showOfflineCoSignPrompt();
+            } else if (data.queuedOffline) {
+              if (data.queuedCoSigned) {
+                _onQueuedCoSigned();
+              } else {
+                _onQueuedOffline();
+              }
             } else {
-              _onCreated(state.data!);
+              _onCreated(data);
             }
           }
         },
@@ -952,6 +1039,104 @@ class _CreateProcedureScreenState extends State<CreateProcedureScreen> {
 }
 
 const _hintStyle = TextStyle(color: Color(0xFF9CA3AF), fontSize: 14);
+
+enum _OfflinePromptChoice { scan, skip }
+
+/// "You're offline" prompt shown after a submit attempt fails with no
+/// connectivity — lets the student attach a supervisor's bedside QR
+/// (offline co-sign) before the entry is queued, or save without one.
+/// See `integration-mobile-offline-cosign.md` §5.
+class _OfflineCoSignPromptSheet extends StatelessWidget {
+  const _OfflineCoSignPromptSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E7EB),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDF4E7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(LucideIcons.wifiOff, color: Color(0xFFD98C2B)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  LocaleKeys.offline_cosign_offline_prompt_title.tr(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            LocaleKeys.offline_cosign_offline_prompt_body.tr(),
+            style: const TextStyle(fontSize: 13.5, color: Color(0xFF5B6B73)),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () =>
+                Navigator.pop(context, _OfflinePromptChoice.scan),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(LucideIcons.qrCode, size: 18),
+            label: Text(LocaleKeys.offline_cosign_offline_prompt_scan_button.tr()),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: () =>
+                Navigator.pop(context, _OfflinePromptChoice.skip),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF6B7280),
+              side: const BorderSide(color: Color(0xFFE5E7EB)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: Text(LocaleKeys.offline_cosign_offline_prompt_skip_button.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _LoadingBar extends StatelessWidget {
   const _LoadingBar();

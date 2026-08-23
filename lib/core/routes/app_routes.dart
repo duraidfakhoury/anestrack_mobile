@@ -4,13 +4,16 @@ import 'package:anestrack_mobile/modules/student/presentation/routes/student_she
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/create_procedure_route.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/co_sign_handoff_route.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/ble_debug_student_route.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/routes/offline_cosign_scan_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/presentation/routes/supervisor_home_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/presentation/routes/supervisor_shell_route.dart';
 import 'package:anestrack_mobile/modules/common/profile/presentation/routes/profile_route.dart';
 import 'package:anestrack_mobile/modules/common/notifications/presentation/routes/notifications_route.dart';
 import 'package:anestrack_mobile/modules/common/announcements/presentation/routes/announcements_route.dart';
+import 'package:anestrack_mobile/modules/common/offline_cosign_status/presentation/routes/offline_cosign_status_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/co_sign_scan_route.dart';
 import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/ble_debug_supervisor_route.dart';
+import 'package:anestrack_mobile/modules/supervisor/reviews/presentation/routes/witness_procedure_route.dart';
 import 'package:anestrack_mobile/modules/common/settings/presentation/routes/settings_route.dart';
 import 'package:anestrack_mobile/modules/common/support/presentation/routes/support_route.dart';
 import 'package:anestrack_mobile/modules/student/curriculum/presentation/routes/curriculum_route.dart';
@@ -56,10 +59,13 @@ class AppRoutes {
       SupervisorHomeRoute.route,
       CreateProcedureRoute.route,
       CoSignHandoffRoute.route,
+      OfflineCoSignScanRoute.route,
+      OfflineCoSignStatusRoute.route,
       ProfileRoute.route,
       NotificationsRoute.route,
       AnnouncementsRoute.route,
       CoSignScanRoute.route,
+      WitnessProcedureRoute.route,
       BleDebugStudentRoute.route,
       BleDebugSupervisorRoute.route,
       SettingsRoute.route,

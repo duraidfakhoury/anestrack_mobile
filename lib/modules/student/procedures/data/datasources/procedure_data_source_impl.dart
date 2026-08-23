@@ -4,12 +4,17 @@ import 'package:anestrack_mobile/core/network/network_helper.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/datasources/procedure_data_source.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/models/procedure_model.dart';
 import 'package:anestrack_mobile/modules/student/procedures/data/models/co_sign_context_model.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/models/offline_cosign_sync_result_model.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/models/offline_attestation_submit_result_model.dart';
+import 'package:anestrack_mobile/modules/student/procedures/data/models/offline_cosign_status_model.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/entities/create_procedure_result.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/list_procedures_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/create_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/co_sign_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/confirm_procedure_parameters.dart';
 import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/evaluation_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/sync_offline_cosigned_procedures_parameters.dart';
+import 'package:anestrack_mobile/modules/student/procedures/domain/parameters/submit_offline_attestations_parameters.dart';
 
 class ProcedureDataSourceImpl extends ProcedureDataSource {
   final Logger _logger = Logger();
@@ -296,6 +301,97 @@ class ProcedureDataSourceImpl extends ProcedureDataSource {
       return true;
     } catch (e) {
       _logger.e("Failed to create evaluation: $e");
+      rethrow;
+    }
+  }
+
+  // NOTE: unlike `createProcedure`/`coSignProcedure` above, the next two
+  // calls must never log `parameters.toJson()` — both request bodies carry
+  // `coSignCode`, a one-time bedside secret that must never appear in logs,
+  // crash reports, or analytics (spec rule §8.7). Log counts only.
+
+  @override
+  Future<OfflineCoSignSyncResultModel> syncOfflineCoSignedProcedures(
+    SyncOfflineCosignedProceduresParameters parameters,
+  ) async {
+    try {
+      _logger.i(
+        "Syncing ${parameters.procedures.length} offline co-signed procedure(s)",
+      );
+      final response = await NetworkHelper().post(
+        ApisUrls().syncOfflineCoSignedProcedures,
+        data: parameters.toJson(),
+      );
+      final body = _unwrap(response.data);
+      if (body is Map) {
+        final result = OfflineCoSignSyncResultModel.fromJson(
+          Map<String, dynamic>.from(body),
+        );
+        _logger.i(
+          "Offline co-sign sync: success=${result.successCount} "
+          "failure=${result.failureCount} coSigned=${result.coSignedCount} "
+          "pending=${result.pendingCount}",
+        );
+        return result;
+      }
+      throw Exception(
+        "Unexpected syncOfflineCoSignedProcedures response: ${response.data}",
+      );
+    } catch (e) {
+      _logger.e("Failed to sync offline co-signed procedures: $e");
+      rethrow;
+    }
+  }
+
+  @override
+  Future<OfflineAttestationSubmitResultModel> submitOfflineAttestations(
+    SubmitOfflineAttestationsParameters parameters,
+  ) async {
+    try {
+      _logger.i(
+        "Submitting ${parameters.attestations.length} offline attestation(s)",
+      );
+      final response = await NetworkHelper().post(
+        ApisUrls().submitOfflineAttestations,
+        data: parameters.toJson(),
+      );
+      final body = _unwrap(response.data);
+      if (body is Map) {
+        final result = OfflineAttestationSubmitResultModel.fromJson(
+          Map<String, dynamic>.from(body),
+        );
+        _logger.i(
+          "Offline attestation submit: success=${result.successCount} "
+          "failure=${result.failureCount} matched=${result.matchedCount}",
+        );
+        return result;
+      }
+      throw Exception(
+        "Unexpected submitOfflineAttestations response: ${response.data}",
+      );
+    } catch (e) {
+      _logger.e("Failed to submit offline attestations: $e");
+      rethrow;
+    }
+  }
+
+  @override
+  Future<OfflineCoSignStatusModel> getOfflineCoSignStatus() async {
+    try {
+      final response = await NetworkHelper().get(
+        ApisUrls().getOfflineCoSignStatus,
+      );
+      final body = _unwrap(response.data);
+      if (body is Map) {
+        return OfflineCoSignStatusModel.fromJson(
+          Map<String, dynamic>.from(body),
+        );
+      }
+      throw Exception(
+        "Unexpected getOfflineCoSignStatus response: ${response.data}",
+      );
+    } catch (e) {
+      _logger.e("Failed to fetch offline co-sign status: $e");
       rethrow;
     }
   }

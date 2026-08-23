@@ -42,6 +42,16 @@ class ApisUrls {
       '$_baseApiUrl/functions/listPendingForSupervisor';
   String get createEvaluation => '$_baseApiUrl/functions/createEvaluation';
 
+  /// Offline co-sign — bedside QR exchange, uploaded independently by each
+  /// side once connectivity returns. See
+  /// `integration-mobile-offline-cosign.md`.
+  String get syncOfflineCoSignedProcedures =>
+      '$_baseApiUrl/functions/syncOfflineCoSignedProcedures';
+  String get submitOfflineAttestations =>
+      '$_baseApiUrl/functions/submitOfflineAttestations';
+  String get getOfflineCoSignStatus =>
+      '$_baseApiUrl/functions/getOfflineCoSignStatus';
+
   /// Supervisor Students Feature APIs
   /// Uses the supervisor-scoped `listStudents` (auth: any Supervisor) rather
   /// than `listUsers` (admin-only), with server-side search/year/hospital
