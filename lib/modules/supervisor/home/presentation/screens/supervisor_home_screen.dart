@@ -2,6 +2,7 @@ import 'package:anestrack_mobile/core/services/service_locator.dart';
 import 'package:anestrack_mobile/modules/common/notifications/presentation/blocs/unread_count_bloc.dart';
 import 'package:anestrack_mobile/modules/common/profile/presentation/blocs/current_user_bloc.dart';
 import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/hospitals_bloc/hospitals_bloc.dart';
+import 'package:anestrack_mobile/modules/student/procedures/presentation/blocs/procedure_types_bloc/procedure_types_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/domain/entities/supervisor_dashboard.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/presentation/blocs/dashboard_bloc/dashboard_bloc.dart';
 import 'package:anestrack_mobile/modules/supervisor/home/presentation/widgets/supervisor_home_widgets.dart';
@@ -27,6 +28,10 @@ class SupervisorHomeScreen extends StatelessWidget {
         ),
         BlocProvider(
           create: (_) => sl<HospitalsBloc>()..add(FetchHospitalsEvent()),
+        ),
+        BlocProvider(
+          create: (_) =>
+              sl<ProcedureTypesBloc>()..add(FetchProcedureTypesEvent()),
         ),
         BlocProvider(create: (_) => sl<DashboardBloc>()..add(FetchDashboardEvent())),
       ],
@@ -54,6 +59,7 @@ class _SupervisorHomeViewState extends State<_SupervisorHomeView> {
     context.read<CurrentUserBloc>().add(FetchCurrentUserEvent());
     sl<UnreadCountBloc>().add(FetchUnreadCountEvent());
     context.read<HospitalsBloc>().add(FetchHospitalsEvent());
+    context.read<ProcedureTypesBloc>().add(FetchProcedureTypesEvent());
     context.read<DashboardBloc>().add(FetchDashboardEvent(_selectedHospitalId));
   }
 
@@ -76,15 +82,24 @@ class _SupervisorHomeViewState extends State<_SupervisorHomeView> {
               BlocBuilder<DashboardBloc, DashboardState>(
                 builder: (context, state) {
                   final SupervisorDashboardStats? stats = state.data;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      DashboardTopStats(stats: stats),
-                      ProceduresByTypeChart(
-                        byProcedureType: stats?.byProcedureType ?? const [],
-                      ),
-                      GeneralStatsSection(stats: stats),
-                    ],
+                  return BlocBuilder<ProcedureTypesBloc, ProcedureTypesState>(
+                    builder: (context, typesState) {
+                      final nameById = <String, String>{
+                        for (final t in typesState.data ?? const [])
+                          t.id: t.nameAr ?? t.name,
+                      };
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          DashboardTopStats(stats: stats),
+                          ProceduresByTypeChart(
+                            byProcedureType: stats?.byProcedureType ?? const [],
+                            nameById: nameById,
+                          ),
+                          GeneralStatsSection(stats: stats),
+                        ],
+                      );
+                    },
                   );
                 },
               ),

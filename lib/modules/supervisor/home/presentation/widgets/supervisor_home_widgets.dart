@@ -385,9 +385,19 @@ class _TopStatCard extends StatelessWidget {
 /// "توزيع الإجراءات حسب النوع" — one row per procedure type, bar length
 /// proportional to that type's count relative to the highest count.
 class ProceduresByTypeChart extends StatelessWidget {
-  const ProceduresByTypeChart({super.key, required this.byProcedureType});
+  const ProceduresByTypeChart({
+    super.key,
+    required this.byProcedureType,
+    this.nameById = const {},
+  });
 
   final List<ProcedureTypeCount> byProcedureType;
+
+  /// `procedureTypeId` -> Arabic name, resolved client-side from the
+  /// procedure-type catalog. `byProcedureType[].name` only ever carries the
+  /// English name (confirmed against a live response — see
+  /// `SupervisorDashboardModel`), so this is the only way to show Arabic here.
+  final Map<String, String> nameById;
 
   @override
   Widget build(BuildContext context) {
@@ -431,7 +441,11 @@ class ProceduresByTypeChart extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ...byProcedureType.map(
-              (d) => _ProcedureTypeRow(item: d, maxCount: maxCount),
+              (d) => _ProcedureTypeRow(
+                item: d,
+                maxCount: maxCount,
+                displayName: nameById[d.procedureTypeId] ?? d.name,
+              ),
             ),
           ],
         ),
@@ -441,10 +455,15 @@ class ProceduresByTypeChart extends StatelessWidget {
 }
 
 class _ProcedureTypeRow extends StatelessWidget {
-  const _ProcedureTypeRow({required this.item, required this.maxCount});
+  const _ProcedureTypeRow({
+    required this.item,
+    required this.maxCount,
+    required this.displayName,
+  });
 
   final ProcedureTypeCount item;
   final int maxCount;
+  final String displayName;
 
   @override
   Widget build(BuildContext context) {
@@ -457,7 +476,7 @@ class _ProcedureTypeRow extends StatelessWidget {
           SizedBox(
             width: 90,
             child: Text(
-              item.name,
+              displayName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
