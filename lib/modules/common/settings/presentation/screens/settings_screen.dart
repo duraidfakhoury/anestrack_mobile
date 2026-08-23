@@ -12,7 +12,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
-  bool _emailNotifications = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: 'الإشعارات الفورية',
               value: _pushNotifications,
               onChanged: (v) => setState(() => _pushNotifications = v),
-            ),
-            const Divider(height: 1, color: AppColors.gray100),
-            _SwitchRow(
-              icon: LucideIcons.mail,
-              label: 'إشعارات البريد الإلكتروني',
-              value: _emailNotifications,
-              onChanged: (v) => setState(() => _emailNotifications = v),
             ),
           ]),
           const SizedBox(height: 20),
