@@ -25,6 +25,11 @@ class OfflineCosignedProcedureParameters extends Equatable {
 
   final String? notes;
 
+  /// Optional non-identifying body photo as a base64 string (no data-URI
+  /// prefix) — same shape as `CreateProcedureParameters.photo`. Not shown
+  /// in the spec doc's §6.1 example, but the backend accepts it here too.
+  final String? photo;
+
   const OfflineCosignedProcedureParameters({
     required this.hospitalId,
     required this.procedureTypeIds,
@@ -34,6 +39,7 @@ class OfflineCosignedProcedureParameters extends Equatable {
     required this.localId,
     required this.coSignCode,
     this.notes,
+    this.photo,
   });
 
   Map<String, dynamic> toJson() => {
@@ -45,6 +51,7 @@ class OfflineCosignedProcedureParameters extends Equatable {
     'localId': localId,
     'coSignCode': coSignCode,
     if (notes != null && notes!.isNotEmpty) 'notes': notes,
+    if (photo != null && photo!.isNotEmpty) 'photo': photo,
   };
 
   @override
@@ -57,5 +64,6 @@ class OfflineCosignedProcedureParameters extends Equatable {
     localId,
     coSignCode,
     notes,
+    photo,
   ];
 }

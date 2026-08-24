@@ -21,6 +21,7 @@ extension OfflineCosignedProcedureParametersLocalCodec
       localId: json['localId'] as String,
       coSignCode: json['coSignCode'] as String,
       notes: json['notes'] as String?,
+      photo: json['photo'] as String?,
     );
   }
 }

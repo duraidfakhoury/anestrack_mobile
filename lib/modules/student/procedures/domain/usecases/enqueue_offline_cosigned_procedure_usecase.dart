@@ -28,6 +28,7 @@ class EnqueueOfflineCoSignedProcedureUseCase {
       localId: scannedAttestation.localId,
       coSignCode: scannedAttestation.code,
       notes: form.notes,
+      photo: form.photo,
     );
     return repository.enqueue(parameters);
   }
